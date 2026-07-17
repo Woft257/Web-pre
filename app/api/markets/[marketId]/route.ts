@@ -1,4 +1,3 @@
-import { serializeMarket } from "@/lib/domain/serializers";
 import { compactPriceHistory } from "@/lib/domain/history";
 import { ApiError, apiFailure, apiSuccess } from "@/lib/http/api-response";
 import { fetchKalshiCandlestickHistory } from "@/lib/live-feed/candlesticks";
@@ -20,12 +19,20 @@ export async function GET(
     }
 
     const supabase = createAdminClient();
-    const { data: history, error } = await supabase
-      .from("odds_snapshots")
-      .select("home_probability_ppm, away_probability_ppm, source_at, oracle_version, raw_payload")
-      .eq("market_id", marketId)
-      .order("source_at", { ascending: false })
-      .limit(300);
+    const [historyResult, providerHistory] = await Promise.all([
+      supabase
+        .from("odds_snapshots")
+        .select("home_probability_ppm, away_probability_ppm, source_at, oracle_version, raw_payload")
+        .eq("market_id", marketId)
+        .order("source_at", { ascending: false })
+        .limit(300),
+      fetchKalshiCandlestickHistory(parseLiveFeedMapping(market.provider_event_id))
+        .catch((historyError) => {
+          console.error(`[market-history] ${market.slug}:`, historyError);
+          return [];
+        }),
+    ]);
+    const { data: history, error } = historyResult;
     if (error) throw error;
 
     const chronologicalHistory = [...history].reverse();
@@ -45,15 +52,6 @@ export async function GET(
         event,
       };
     }));
-    let providerHistory = [] as typeof snapshotHistory;
-    try {
-      providerHistory = await fetchKalshiCandlestickHistory(
-        parseLiveFeedMapping(market.provider_event_id),
-      );
-    } catch (historyError) {
-      console.error(`[market-history] ${market.slug}:`, historyError);
-    }
-
     const currentPoint = {
       homeProbability: market.oracle_home_probability_ppm / 1_000_000,
       awayProbability: market.oracle_away_probability_ppm / 1_000_000,
@@ -66,10 +64,10 @@ export async function GET(
         .sort((left, right) => Date.parse(left.sourceAt) - Date.parse(right.sourceAt)),
     );
 
-    return apiSuccess({
-      ...serializeMarket(market),
-      history: mergedHistory,
-    });
+    return apiSuccess(
+      { history: mergedHistory },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300" } },
+    );
   } catch (error) {
     return apiFailure(error);
   }

@@ -28,6 +28,7 @@ import type {
   PortfolioData,
   PublicMarket,
 } from "@/lib/client/types";
+import { compactPriceHistory } from "@/lib/domain/history";
 import { getBrowserClient } from "@/lib/supabase/browser";
 
 type Tab = "markets" | "leaderboard" | "portfolio";
@@ -45,7 +46,7 @@ export function EventDashboard({
   const [activeTab, setActiveTab] = useState<Tab>("markets");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
-  const [history, setHistory] = useState<MarketHistoryPoint[]>([]);
+  const [historyByMarket, setHistoryByMarket] = useState<Record<string, MarketHistoryPoint[]>>({});
   const [connection, setConnection] = useState<"connecting" | "live" | "offline">("connecting");
   const [loadingView, setLoadingView] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -58,6 +59,22 @@ export function EventDashboard({
 
   const selectedMarket = markets.find((market) => market.id === selectedMarketId) ?? markets[0];
   const selectedPosition = portfolio?.positions.find((position) => position.marketId === selectedMarket?.id);
+  const selectedHistory = useMemo(() => {
+    if (!selectedMarket) return [];
+    const cached = historyByMarket[selectedMarket.id] ?? [];
+    if (!selectedMarket.oracleSourceAt) return cached;
+    const currentPoint: MarketHistoryPoint = {
+      homeProbability: selectedMarket.home.oracleProbability,
+      awayProbability: selectedMarket.away.oracleProbability,
+      sourceAt: selectedMarket.oracleSourceAt,
+      oracleVersion: selectedMarket.oracleVersion,
+      event: selectedMarket.latestEvent,
+    };
+    return compactPriceHistory(
+      [...cached, currentPoint]
+        .sort((left, right) => Date.parse(left.sourceAt) - Date.parse(right.sourceAt)),
+    );
+  }, [historyByMarket, selectedMarket]);
 
   const refreshMarkets = useCallback(async () => {
     const data = await apiRequest<PublicMarket[]>("/api/markets");
@@ -93,11 +110,17 @@ export function EventDashboard({
   }, [user]);
 
   const refreshMarketDetail = useCallback(async (marketId: string) => {
-    if (!marketId) return;
-    const data = await apiRequest<PublicMarket & { history: MarketHistoryPoint[] }>(
+    const data = await apiRequest<{ history: MarketHistoryPoint[] }>(
       `/api/markets/${marketId}`,
+      { cache: "default" },
     );
-    setHistory(data.history);
+    setHistoryByMarket((current) => {
+      const merged = compactPriceHistory(
+        [...data.history, ...(current[marketId] ?? [])]
+          .sort((left, right) => Date.parse(left.sourceAt) - Date.parse(right.sourceAt)),
+      );
+      return { ...current, [marketId]: merged };
+    });
   }, []);
 
   const refreshUserState = useCallback(async () => {
@@ -117,7 +140,7 @@ export function EventDashboard({
       if (selectedMarketId) runBackground(refreshMarketDetail(selectedMarketId));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [refreshMarketDetail, runBackground, selectedMarket?.oracleVersion, selectedMarketId]);
+  }, [refreshMarketDetail, runBackground, selectedMarketId]);
 
   useEffect(() => {
     const supabase = getBrowserClient();
@@ -272,7 +295,7 @@ export function EventDashboard({
             onSelect={setSelectedMarketId}
             user={user}
             position={selectedPosition}
-            history={history}
+            history={selectedHistory}
             onTradeComplete={refreshUserState}
           />
         )}

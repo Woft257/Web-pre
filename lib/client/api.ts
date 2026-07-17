@@ -9,7 +9,7 @@ interface ApiEnvelope<T> {
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
-    cache: "no-store",
+    cache: init?.cache ?? "no-store",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,
