@@ -1,17 +1,53 @@
+import { readFile } from "node:fs/promises";
+
 import { expect, test } from "@playwright/test";
 
 const runSeed = Number(String(Date.now()).slice(-5));
+const userPassword = "test-password-2026";
 
 function uidFor(workerIndex: number, offset = 0) {
   return String(60_000_000 + runSeed * 100 + workerIndex * 10 + offset).padStart(8, "0");
 }
 
-test("UID user can quote, buy, and see the live portfolio", async ({ page }, testInfo) => {
+async function provisionUser(request: import("@playwright/test").APIRequestContext, uid: string) {
+  const response = await request.post("/api/admin/users", {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+    data: { uid, password: userPassword },
+  });
+  expect(response.ok()).toBeTruthy();
+}
+
+async function makeMarketFresh(
+  request: import("@playwright/test").APIRequestContext,
+  marketIndex = 0,
+) {
+  const marketsPayload = await (await request.get("/api/markets")).json();
+  const market = marketsPayload.data[marketIndex];
+  const response = await request.post(`/api/admin/markets/${market.id}/replay`, {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+    data: {
+      homeProbability: market.home.oracleProbability,
+      homeScore: market.home.score,
+      awayScore: market.away.score,
+      matchMinute: market.matchMinute,
+      status: market.status,
+      event: "E2E fresh feed",
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  return market;
+}
+
+test("UID user can quote, buy, and see the live portfolio", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop workflow");
+  const uid = uidFor(testInfo.workerIndex);
+  await provisionUser(request, uid);
+  await makeMarketFresh(request);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
 
-  await page.getByLabel("MEXC UID").fill(uidFor(testInfo.workerIndex));
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByLabel("Football markets")).toBeVisible();
@@ -42,9 +78,12 @@ test("admin replay tick updates a market through Supabase Realtime", async ({ pa
   const marketsResponse = await request.get("/api/markets");
   const marketsPayload = await marketsResponse.json();
   const market = marketsPayload.data[0];
+  const uid = uidFor(testInfo.workerIndex, 1);
+  await provisionUser(request, uid);
 
   await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uidFor(testInfo.workerIndex, 1));
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Football markets")).toBeVisible();
 
@@ -108,10 +147,13 @@ test("admin replay tick updates a market through Supabase Realtime", async ({ pa
   await expect(page.getByRole("button", { name: "Get quote" })).toBeEnabled();
 });
 
-test("mobile market layout has no horizontal document overflow", async ({ page }, testInfo) => {
+test("mobile market layout has no horizontal document overflow", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chrome", "mobile layout workflow");
+  const uid = uidFor(testInfo.workerIndex, 2);
+  await provisionUser(request, uid);
   await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uidFor(testInfo.workerIndex, 2));
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Football markets")).toBeVisible();
 
@@ -127,7 +169,9 @@ test("mobile market layout has no horizontal document overflow", async ({ page }
 test("security guards reject invalid UID, anonymous portfolio, and unauthorized admin", async ({ request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "API security workflow");
 
-  const invalidUid = await request.post("/api/session", { data: { uid: "123" } });
+  const invalidUid = await request.post("/api/session", {
+    data: { uid: "123", password: userPassword },
+  });
   expect(invalidUid.status()).toBe(400);
 
   const anonymousPortfolio = await request.get("/api/portfolio");
@@ -139,12 +183,19 @@ test("security guards reject invalid UID, anonymous portfolio, and unauthorized 
     { data: { status: "suspended", reason: "Unauthorized test" } },
   );
   expect(unauthorizedAdmin.status()).toBe(401);
+
+  const unauthorizedUserExport = await request.get("/api/admin/users.csv");
+  expect(unauthorizedUserExport.status()).toBe(401);
 });
 
 test("an oracle update invalidates an outstanding quote", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "quote version workflow");
+  const uid = uidFor(testInfo.workerIndex, 3);
+  await provisionUser(request, uid);
+  await makeMarketFresh(request, 1);
   await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uidFor(testInfo.workerIndex, 3));
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Football markets")).toBeVisible();
 
@@ -192,7 +243,39 @@ test("an oracle update invalidates an outstanding quote", async ({ page, request
 test("admin requires settlement and void previews before commit", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "admin preview workflow");
   await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Admin access" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Preview settle" })).toHaveCount(0);
   await page.getByLabel("Admin secret").fill("local-admin-secret-change-me");
+  await page.getByRole("button", { name: "Unlock operations" }).click();
+  await expect(page.getByRole("heading", { name: "Market control" })).toBeVisible();
+
+  const managedUid = uidFor(testInfo.workerIndex, 5);
+  await page.getByLabel("UID", { exact: true }).fill(managedUid);
+  await page.getByLabel("Password", { exact: true }).fill(userPassword);
+  await page.getByRole("button", { name: "Add user" }).click();
+  await expect(page.getByRole("cell", { name: managedUid, exact: true })).toBeVisible();
+
+  await page.getByLabel(`New password for ${managedUid}`).fill("updated-password-2026");
+  await page.getByTitle(`Update password for ${managedUid}`).click();
+  await expect(page.getByText(`Password updated for ${managedUid}`)).toBeVisible();
+
+  const usersDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export users CSV" }).click();
+  const usersDownload = await usersDownloadPromise;
+  expect(usersDownload.suggestedFilename()).toMatch(/^mexc-users-\d{4}-\d{2}-\d{2}\.csv$/);
+  const usersCsv = await readFile(await usersDownload.path(), "utf8");
+  expect(usersCsv).toContain(`"${managedUid}"`);
+  expect(usersCsv).not.toContain("password_hash");
+  expect(usersCsv).not.toContain("updated-password-2026");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export leaderboard CSV" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^mexc-leaderboard-\d{4}-\d{2}-\d{2}\.csv$/);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTitle(`Delete UID ${managedUid}`).click();
+  await expect(page.getByRole("cell", { name: managedUid, exact: true })).toHaveCount(0);
 
   const settleButton = page.getByRole("button", { name: "Settle", exact: true });
   const voidButton = page.getByRole("button", { name: "Void", exact: true });
@@ -210,10 +293,13 @@ test("admin requires settlement and void previews before commit", async ({ page 
   await expect(voidButton).toBeEnabled();
 });
 
-test("required responsive widths do not overflow", async ({ page }, testInfo) => {
+test("required responsive widths do not overflow", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "responsive matrix");
+  const uid = uidFor(testInfo.workerIndex, 4);
+  await provisionUser(request, uid);
   await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uidFor(testInfo.workerIndex, 4));
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
 
   for (const width of [375, 768, 1280, 1440]) {

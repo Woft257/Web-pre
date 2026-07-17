@@ -4,6 +4,16 @@ export const uidSchema = z.string().regex(/^\d{8}$/, "UID must contain exactly 8
 
 export const sessionRequestSchema = z.object({
   uid: uidSchema,
+  password: z.string().min(8).max(128),
+});
+
+export const adminCreateUserSchema = z.object({
+  uid: uidSchema,
+  password: z.string().min(8).max(128),
+});
+
+export const adminUpdatePasswordSchema = z.object({
+  password: z.string().min(8).max(128),
 });
 
 export const quoteRequestSchema = z.discriminatedUnion("action", [

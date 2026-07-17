@@ -31,8 +31,8 @@ export function formatPoints(value: number, maximumFractionDigits = 2) {
 
 export function formatProbability(value: number) {
   return `${new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 4,
-    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
     useGrouping: false,
   }).format(value * 100)}%`;
 }

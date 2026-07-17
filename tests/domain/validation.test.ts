@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatProbability } from "@/lib/client/api";
-import { quoteRequestSchema } from "@/lib/validation/schemas";
+import { quoteRequestSchema, sessionRequestSchema } from "@/lib/validation/schemas";
 
 describe("trade request limits", () => {
   it("keeps the 10 point minimum without an application maximum", () => {
@@ -11,9 +11,17 @@ describe("trade request limits", () => {
       .toMatchObject({ amount: 10_000 });
   });
 
-  it("shows the stored Kalshi precision instead of rounding to whole percent", () => {
-    expect(formatProbability(0.635)).toBe("63.5%");
+  it("shows Kalshi probabilities with two decimal places", () => {
+    expect(formatProbability(0.635)).toBe("63.50%");
     expect(formatProbability(0.4135)).toBe("41.35%");
-    expect(formatProbability(0.635363)).toBe("63.5363%");
+    expect(formatProbability(0.635363)).toBe("63.54%");
+  });
+
+  it("requires a password with every UID login", () => {
+    expect(() => sessionRequestSchema.parse({ uid: "12345678" })).toThrow();
+    expect(sessionRequestSchema.parse({
+      uid: "12345678",
+      password: "password-2026",
+    })).toMatchObject({ uid: "12345678" });
   });
 });

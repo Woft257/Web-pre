@@ -26,7 +26,7 @@ Dien URL, anon key va service-role key do `npx supabase status` tra ve vao `.env
 npm run dev
 ```
 
-Mo `http://localhost:3000`. Trang dieu hanh replay/settlement nam tai `http://localhost:3000/admin` va yeu cau `ADMIN_SECRET`.
+Mo `http://localhost:3000`. User phai duoc tao truoc tai `http://localhost:3000/admin` voi UID 8 chu so va password. Admin console yeu cau `ADMIN_SECRET`, co user management, replay/settlement va export user/BXH CSV.
 
 ## Kiem thu
 

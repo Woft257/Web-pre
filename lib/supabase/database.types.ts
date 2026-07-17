@@ -75,6 +75,7 @@ export type Database = {
           created_at: string
           id: string
           initial_points_micro: number
+          password_hash: string | null
           status: string
           uid: string
           updated_at: string
@@ -84,6 +85,7 @@ export type Database = {
           created_at?: string
           id?: string
           initial_points_micro?: number
+          password_hash?: string | null
           status?: string
           uid: string
           updated_at?: string
@@ -93,6 +95,7 @@ export type Database = {
           created_at?: string
           id?: string
           initial_points_micro?: number
+          password_hash?: string | null
           status?: string
           uid?: string
           updated_at?: string
@@ -620,6 +623,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_event_user: {
+        Args: { p_password_hash: string; p_uid: string }
+        Returns: {
+          balance_micro: number
+          created_at: string
+          id: string
+          initial_points_micro: number
+          password_hash: string | null
+          status: string
+          uid: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "event_users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_delete_event_user: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      admin_update_user_password: {
+        Args: { p_password_hash: string; p_user_id: string }
+        Returns: {
+          balance_micro: number
+          created_at: string
+          id: string
+          initial_points_micro: number
+          password_hash: string | null
+          status: string
+          uid: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "event_users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       consume_rate_limit: {
         Args: {
           p_key_hash: string
@@ -636,6 +681,7 @@ export type Database = {
           created_at: string
           id: string
           initial_points_micro: number
+          password_hash: string | null
           status: string
           uid: string
           updated_at: string

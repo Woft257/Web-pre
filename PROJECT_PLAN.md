@@ -41,8 +41,8 @@
 - [x] Moi UID nhan `10.000` diem khoi tao.
 - [x] Moi lenh toi thieu `10` diem; khong co max order/max exposure, gioi han mua chi la balance kha dung cua UID.
 - [x] Moi UID chi duoc cap diem mot lan trong toan bo su kien.
-- [x] MVP cho phep bat ky UID dung 8 chu so tao tai khoan; co the them whitelist bang migration sau.
-- [x] MVP dung UID-only theo yeu cau, session cookie signed/httpOnly. Ghi nhan rui ro: ai biet UID co the gia mao; production co giai thuong nen them PIN/claim code.
+- [x] UID dung 8 chu so chi duoc tao boi admin; public login khong tu tao account.
+- [x] Login dung UID + password hash `scrypt`; doi password thu hoi session cu, cookie van random/httpOnly.
 - [x] Chi hien UID da che tren BXH, vi du `12****78`.
 
 ### 2.3. Co che prediction market
@@ -176,7 +176,7 @@ Tai lieu tham chieu:
 
 ## 6. Mo hinh du lieu
 
-- [x] `User`: UID, balance, diem khoi tao, thoi diem tao, trang thai.
+- [x] `User`: UID, password hash, balance, diem khoi tao, thoi diem tao, trang thai.
 - [x] `Session`: token hash, UID/user, thoi han, user agent va thoi diem tao.
 - [x] `Market`: hai doi, loai tran, kickoff, trading end, status, outcome, provider mapping va thong so VMM.
 - [x] Match state nam trong `markets`: phut, ty so, period, event gan nhat, provider timestamp va feed status.
@@ -233,7 +233,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ## 8. API du kien
 
-- [x] `POST /api/session` - kiem tra UID, tao user lan dau va tao session.
+- [x] `POST /api/session` - xac thuc UID + password cua account do admin tao va cap session.
 - [x] `DELETE /api/session` - thoat UID hien tai.
 - [x] `GET /api/me` - balance, equity va thong tin session.
 - [x] `GET /api/markets` - danh sach market va gia hien tai.
@@ -286,11 +286,11 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Desktop: danh sach/chi tiet market ben trai, trading panel ben phai.
 - [x] Mobile: market va trading panel full-width theo document flow, tranh bottom sheet che price/history.
 - [x] Hien balance/equity/open value, tong market/player/pick va timestamp cap nhat trong cac thanh thong tin gon.
-- [x] Footer toi gian: ten su kien, `GMT+7` va lien ket admin.
+- [x] Footer toi gian: ten su kien va `GMT+7`; khong hien link admin tren public UI.
 
 ### 10.3. Thanh phan chinh
 
-- [x] Form UID chi nhan so, gioi han dung 8 ky tu, co error inline/loading/retry.
+- [x] Form login gom UID 8 chu so + password, co error inline/loading/retry.
 - [x] Market card: co/ten doi, loai tran, kickoff `GMT+7`, status va xac suat hien tai.
 - [x] Market in-play: ty so, phut, event moi, feed freshness va trang thai Live/Suspended/Ended.
 - [x] Trading panel: chon doi, buy/sell, nhap diem/share, 25/50/75/Max, quote va payout.
@@ -312,6 +312,9 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [ ] Hien do lech primary/fallback sau khi chot provider production.
 - [x] Admin co the suspend market; direct resume bi chan va chi mo lai sau hai oracle snapshot moi, score khong duoc regression.
 - [x] Admin xem market, feed/oracle timestamp/version, trading status va payout preview truoc settle.
+- [x] Admin quan ly user: add UID/password, reset password/revoke session va delete user chua co trade.
+- [x] Admin export BXH day du ra CSV co UID khong che.
+- [x] Admin export toan bo user ra CSV, gom UID/diem/trang thai va khong gom password hash/session.
 - [x] UI bat buoc preview payout truoc khi bat nut settle/void, sau do con browser confirmation truoc commit.
 - [x] Luu nguon ket qua va result reference/ghi chu khi settle/void.
 - [x] Co dry-run cho biet so UID va tong payout truoc khi settle.
@@ -348,7 +351,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### Integration test
 
-- [x] UID sai format bi tu choi; UID hop le chi duoc cap diem mot lan.
+- [x] UID/password sai bi tu choi; UID do admin tao nhan diem dung mot lan.
 - [x] Portfolio can session hop le; request an danh bi tu choi.
 - [x] E2E kiem tra quote het han va quote co oracle version cu deu tra `409`; zero-slippage policy yeu cau exact version.
 - [x] Oracle doi version lam quote cu bi tu choi `409 ORACLE_VERSION_CHANGED`.
@@ -358,7 +361,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### End-to-end va visual test
 
-- [x] Luong UID -> xem market -> quote -> buy -> sell/cash-out -> portfolio duoc Playwright kiem tra.
+- [x] Luong admin add UID -> UID/password login -> quote -> buy -> sell/cash-out -> portfolio duoc Playwright kiem tra.
 - [x] Luong replay live -> goal -> suspend -> odds moi/resume va buy/sell/cash-out duoc kiem tra.
 - [ ] Mat feed trong tran giu last price de xem nhung khong cho dat lenh.
 - [ ] Luong ended -> result confirmed -> admin settle -> payout -> BXH cuoi.
@@ -388,7 +391,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### Milestone 2 - API va persistence
 
-- [x] Lam UID session va cap diem mot lan.
+- [x] Lam admin provision UID/password, login session va cap diem mot lan.
 - [x] Lam market/quote/trade/portfolio/leaderboard API.
 - [x] Viet va test RPC transaction atomic cho trade/settlement/void.
 - [x] Lam worker ingest Kalshi price + FIFA score, validate va ghi oracle atomic.
@@ -443,7 +446,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 ### 17/07/2026 - Bat dau implementation
 
 - Da chot bo mac dinh MVP tai muc 2 de co the trien khai lien tuc; cac gia tri nay phai nam trong config/env, khong hard-code rai rac.
-- UID-only duoc giu theo yeu cau san pham, nhung khong du an toan neu BXH dung de trao thuong that. Can PIN/claim code hoac co che xac minh UID truoc production.
+- Login da chuyen tu UID-only sang UID + password `scrypt`; user chi duoc provision qua admin.
 - Chua co Supabase project URL/key va chua co live-odds provider credential. Source se gom migration, seed, local/replay provider va env example; ket noi production chi duoc danh dau hoan tat sau khi co credential va smoke test.
 - Ghi chu lich su: ngay 17/07 worker con dung The Odds API prototype; phuong an nay da duoc thay the ngay 18/07.
 - Logo SVG MEXC nguoi dung cung cap da duoc luu nguyen noi dung tai `public/brand/mexc-logo.svg` va dung tren user/admin shell.
@@ -469,5 +472,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Da them unit test parser/mapping. Con bat buoc rehearsal latency va chot noi host process worker lien tuc truoc Production.
 - Heartbeat feed khong tao odds tick/khong tang `oracle_version`; history API nen snapshot trung va chart dung truc Y dong de hien bien dong nho.
 - Chart lay them Kalshi candlestick 1 gio trong 7 ngay, ghep hai ticker theo timestamp, ve hai line home/away va co range `24H/7D` nhu market chart.
-- UI hien dung Kalshi oracle PPM toi da 4 so thap phan, khong lam tron ve so nguyen va khong hien VMM inventory price thay cho oracle.
+- UI hien dung Kalshi oracle voi 2 so thap phan va khong hien VMM inventory price thay cho oracle.
 - Bo gioi han mua `2.000`/exposure `5.000`; chi con min `10` va balance kha dung.
+- Xac suat UI co dinh 2 so thap phan; bo link Admin khoi public footer va khoa toan bo `/admin` den khi `ADMIN_SECRET` duoc xac thuc.
+- Admin co user management, password `scrypt`, session revocation, delete guard cho trade history va CSV user/leaderboard export.

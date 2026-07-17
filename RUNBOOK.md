@@ -30,6 +30,7 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 - Kiem tra `/api/health`, hai market, provider mapping va last source timestamp.
 - Xac nhan alert quota/feed stale, primary/fallback deviation va nguoi truc.
 - Rehearsal admin suspend, hai-snapshot resume, preview settle va preview void.
+- Tao UID test bang admin, kiem tra UID + password login, reset password/revoke session va export user/BXH CSV.
 
 ### T-30 phut
 

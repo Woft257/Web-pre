@@ -257,7 +257,6 @@ export function EventDashboard({
       <footer className="site-footer">
         <span>MEXC Kickoff Markets</span>
         <span>Points event / GMT+7</span>
-        <Link href="/admin">Admin</Link>
       </footer>
 
       {!user && <UidGate onAuthenticated={setUser} />}

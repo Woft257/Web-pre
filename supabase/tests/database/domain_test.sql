@@ -1,6 +1,6 @@
 begin;
 
-select plan(38);
+select plan(45);
 
 select has_table('public', 'event_users', 'event_users table exists');
 select has_table('public', 'markets', 'markets table exists');
@@ -474,6 +474,65 @@ select is(
      and market_id = (select void_market_id from test_context)),
   0::bigint,
   'void clears outstanding shares'
+);
+
+select lives_ok(
+  $$
+    create temp table managed_user_context as
+    select id as user_id
+    from public.admin_create_event_user(
+      '99000001',
+      'scrypt$16384$8$1$test-salt$test-key'
+    )
+  $$,
+  'admin creates a password-protected user'
+);
+
+select is(
+  (select count(*) from public.leaderboard_entries where user_id = (select user_id from managed_user_context)),
+  1::bigint,
+  'admin-created user is added to the leaderboard'
+);
+
+insert into public.uid_sessions(token_hash, user_id, expires_at)
+values ('managed-user-session', (select user_id from managed_user_context), now() + interval '1 hour');
+
+select lives_ok(
+  $$
+    select public.admin_update_user_password(
+      (select user_id from managed_user_context),
+      'scrypt$16384$8$1$new-test-salt$new-test-key'
+    )
+  $$,
+  'admin updates a user password'
+);
+
+select is(
+  (select count(*) from public.uid_sessions where user_id = (select user_id from managed_user_context)),
+  0::bigint,
+  'password update revokes existing sessions'
+);
+
+select lives_ok(
+  $$
+    select public.admin_delete_event_user((select user_id from managed_user_context))
+  $$,
+  'admin deletes a user without trade history'
+);
+
+select is(
+  (select count(*) from public.event_users where id = (select user_id from managed_user_context)),
+  0::bigint,
+  'deleted user is removed'
+);
+
+select throws_ok(
+  $$
+    select public.admin_delete_event_user((select user_id from test_context))
+  $$,
+  'P0001',
+  'USER_HAS_TRADE_HISTORY',
+  'admin cannot delete a user with trade history'
 );
 
 select * from finish();

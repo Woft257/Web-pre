@@ -1446,6 +1446,26 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+.uid-password-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.uid-password-wrap svg {
+  position: absolute;
+  z-index: 1;
+  top: 19px;
+  left: 14px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+.uid-password-wrap input {
+  width: 100%;
+  padding-left: 42px;
+  font-size: 16px;
+}
+
 .uid-input-meta {
   display: flex;
   min-height: 34px;
@@ -1802,6 +1822,36 @@ h2 {
   font-size: 12px;
 }
 
+.admin-header > button {
+  justify-self: end;
+}
+
+.admin-auth-main {
+  display: grid;
+  min-height: calc(100vh - 62px);
+  padding: 24px;
+  place-items: center;
+}
+
+.admin-auth-panel {
+  display: grid;
+  width: min(400px, 100%);
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.admin-auth-panel > svg {
+  color: var(--blue);
+}
+
+.admin-auth-panel h1 {
+  margin-top: 4px;
+  font-size: 24px;
+}
+
 .admin-main {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -1818,7 +1868,7 @@ h2 {
 }
 
 .admin-toolbar {
-  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(260px, 1fr);
   margin-bottom: 18px;
 }
 
@@ -1902,6 +1952,87 @@ h2 {
   margin-top: 18px;
 }
 
+.admin-users-panel {
+  margin-top: 18px;
+}
+
+.admin-users-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-users-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-user-create {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-user-create > button {
+  min-width: 130px;
+}
+
+.admin-users-table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.admin-users-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+}
+
+.admin-users-table th,
+.admin-users-table td {
+  height: 58px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-users-table th {
+  color: var(--text-subtle);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.admin-password-edit {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 44px;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-password-edit input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.danger-icon-button {
+  color: var(--red);
+}
+
+.admin-users-empty {
+  color: var(--text-subtle);
+  text-align: center !important;
+}
+
 .admin-panel {
   padding: 16px;
   border: 1px solid var(--border);
@@ -1954,6 +2085,20 @@ h2 {
 
   .admin-toolbar,
   .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-users-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-users-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-create {
     grid-template-columns: 1fr;
   }
 
