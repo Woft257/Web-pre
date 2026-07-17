@@ -474,6 +474,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Worker poll FIFA truoc de phat hien goal/ended, sau do poll hai contract Kalshi, normalize bid/ask midpoint va ghi Supabase atomic.
 - Goal chi resume sau khi ca hai `updated_time` Kalshi moi va co hai snapshot xac nhan; khong ingest the, VAR hay event khac.
 - Vercel build bat buoc co `SESSION_SECRET` (>= 32 ky tu), `ADMIN_SECRET` va `ODDS_WORKER_SECRET` (>= 12 ky tu) trong Project Environment Variables; `.env.local` khong duoc deploy do da Git ignore.
+- Supabase Cloud project trong config Production da duoc ket noi thu read-only nhung tra `PGRST205` cho `public.markets`: remote schema/seed chua duoc push; can link dung project, chay `db push --dry-run`, sau do `db push --include-all --include-seed` va xac nhan `/api/health` co hai market.
 - Da them unit test parser/mapping. Con bat buoc rehearsal latency va chot noi host process worker lien tuc truoc Production.
 - Heartbeat feed khong tao odds tick/khong tang `oracle_version`; history API nen snapshot trung va chart dung truc Y dong de hien bien dong nho.
 - Chart lay them Kalshi candlestick 1 gio trong 7 ngay, ghep hai ticker theo timestamp, ve hai line home/away va co range `24H/7D` nhu market chart.

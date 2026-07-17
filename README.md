@@ -79,4 +79,15 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 
 Sau khi them hoac sua Environment Variables, can redeploy deployment cu de build moi nhan cac gia tri. Khong commit `.env.local` hoac gia tri secret vao repository.
 
+Khoi tao schema va hai market tren Supabase Cloud (thay `<project-ref>` bang ref trong Supabase URL):
+
+```powershell
+npx supabase login
+npx supabase link --project-ref <project-ref>
+npx supabase db push --linked --include-all --include-seed --dry-run
+npx supabase db push --linked --include-all --include-seed
+```
+
+Luon doc ket qua `--dry-run` truoc khi push. Sau khi thanh cong, `/api/health` phai tra `database: connected` va `marketCount: 2`.
+
 Chi tiet trang thai va hang muc Production con thieu nam trong [PROJECT_PLAN.md](./PROJECT_PLAN.md). Quy trinh rehearsal/van han nam trong [RUNBOOK.md](./RUNBOOK.md).
