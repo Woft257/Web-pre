@@ -59,8 +59,24 @@ Vercel Function khong phu hop cho process polling lien tuc. Web/API van deploy V
 
 1. Tao Supabase project rieng cho Preview va Production.
 2. Apply migrations trong `supabase/migrations/` va seed co kiem soat.
-3. Khai bao toan bo bien trong `.env.example` tren Vercel; khong dat service-role/provider/admin secret vao bien `NEXT_PUBLIC_*`.
+3. Trong Vercel Project Settings -> Environment Variables, khai bao toan bo bien trong `.env.example` cho ca Production va Preview; `.env.local` bi Git ignore nen khong duoc upload len Vercel.
 4. Kiem tra RLS, RPC grants, Realtime publication va chay smoke test tren URL Vercel.
 5. Rehearsal live feed va quy trinh suspend/settle/void truoc ngay su kien.
+
+Ba secret sau la bat buoc ngay trong luc Vercel build va tuyet doi khong duoc them tien to `NEXT_PUBLIC_`:
+
+| Bien | Yeu cau |
+| --- | --- |
+| `SESSION_SECRET` | Chuoi ngau nhien toi thieu 32 ky tu, dung de ky JWT cookie |
+| `ADMIN_SECRET` | Toi thieu 12 ky tu, day la mat khau vao trang admin |
+| `ODDS_WORKER_SECRET` | Chuoi ngau nhien toi thieu 12 ky tu, dung cho provider webhook |
+
+Co the tao secret ngau nhien tren may local bang lenh sau, chay rieng mot lan cho moi secret:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Sau khi them hoac sua Environment Variables, can redeploy deployment cu de build moi nhan cac gia tri. Khong commit `.env.local` hoac gia tri secret vao repository.
 
 Chi tiet trang thai va hang muc Production con thieu nam trong [PROJECT_PLAN.md](./PROJECT_PLAN.md). Quy trinh rehearsal/van han nam trong [RUNBOOK.md](./RUNBOOK.md).
