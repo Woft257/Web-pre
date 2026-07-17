@@ -34,4 +34,13 @@ describe("price history", () => {
     expect(compacted).toHaveLength(3);
     expect(compacted[1].event).toBe("Goal - FRA 1:0 ENG");
   });
+
+  it("removes the exact duplicate created by merging the latest snapshot and market state", () => {
+    const latest = point(0.7, "2026-07-18T01:10:00Z", "Goal - FRA 1:0 ENG");
+    latest.oracleVersion = 9;
+
+    const compacted = compactPriceHistory([latest, { ...latest }]);
+
+    expect(compacted).toEqual([latest]);
+  });
 });

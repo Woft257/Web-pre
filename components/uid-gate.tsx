@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { apiRequest } from "@/lib/client/api";
@@ -13,8 +13,10 @@ interface SessionResponse {
 }
 
 export function UidGate({ onAuthenticated }: { onAuthenticated: (user: CurrentUser) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [uid, setUid] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,10 +31,14 @@ export function UidGate({ onAuthenticated }: { onAuthenticated: (user: CurrentUs
       setError("Password must contain at least 8 characters");
       return;
     }
+    if (mode === "register" && password !== passwordConfirmation) {
+      setError("Passwords do not match");
+      return;
+    }
 
     setLoading(true);
     try {
-      const session = await apiRequest<SessionResponse>("/api/session", {
+      const session = await apiRequest<SessionResponse>(mode === "register" ? "/api/register" : "/api/session", {
         method: "POST",
         body: JSON.stringify({ uid, password }),
       });
@@ -52,8 +58,28 @@ export function UidGate({ onAuthenticated }: { onAuthenticated: (user: CurrentUs
           <ShieldCheck size={22} />
         </div>
         <p className="eyebrow">MEXC Kickoff Markets</p>
-        <h1 id="uid-title">Enter your UID</h1>
+        <h1 id="uid-title">{mode === "login" ? "Enter your UID" : "Create your account"}</h1>
         <p className="uid-modal-note">10,000 event points. No deposits or real-money wagering.</p>
+        <div className="auth-mode-switch" role="tablist" aria-label="Account access">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "login"}
+            className={mode === "login" ? "active" : ""}
+            onClick={() => { setMode("login"); setError(""); }}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "register"}
+            className={mode === "register" ? "active" : ""}
+            onClick={() => { setMode("register"); setError(""); }}
+          >
+            Create account
+          </button>
+        </div>
         <form onSubmit={submit} noValidate>
           <label htmlFor="uid">MEXC UID</label>
           <input
@@ -65,12 +91,11 @@ export function UidGate({ onAuthenticated }: { onAuthenticated: (user: CurrentUs
             autoComplete="off"
             placeholder="00000000"
             aria-invalid={Boolean(error)}
-            aria-describedby={error ? "uid-error" : undefined}
+            aria-describedby={error ? "auth-error" : undefined}
             autoFocus
           />
           <div className="uid-input-meta">
             <span>{uid.length}/8</span>
-            {error && <span id="uid-error" className="form-error">{error}</span>}
           </div>
           <label htmlFor="uid-password">Password</label>
           <div className="uid-password-wrap">
@@ -81,13 +106,35 @@ export function UidGate({ onAuthenticated }: { onAuthenticated: (user: CurrentUs
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               aria-invalid={Boolean(error)}
             />
           </div>
+          {mode === "register" && (
+            <>
+              <label htmlFor="uid-password-confirmation">Confirm password</label>
+              <div className="uid-password-wrap">
+                <LockKeyhole size={16} />
+                <input
+                  id="uid-password-confirmation"
+                  name="password-confirmation"
+                  type="password"
+                  value={passwordConfirmation}
+                  onChange={(event) => setPasswordConfirmation(event.target.value)}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(error)}
+                />
+              </div>
+            </>
+          )}
+          <div className="uid-form-status" aria-live="polite">
+            {error && <span id="auth-error" className="form-error">{error}</span>}
+          </div>
           <button className="primary-button wide-button" type="submit" disabled={loading}>
-            {loading ? <LoaderCircle className="spin" size={18} /> : <ArrowRight size={18} />}
-            Continue
+            {loading
+              ? <LoaderCircle className="spin" size={18} />
+              : mode === "register" ? <UserPlus size={18} /> : <ArrowRight size={18} />}
+            {mode === "register" ? "Create account" : "Continue"}
           </button>
         </form>
       </section>

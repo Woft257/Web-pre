@@ -1,8 +1,9 @@
 begin;
 
-select plan(45);
+select plan(52);
 
 select has_table('public', 'event_users', 'event_users table exists');
+select has_column('public', 'event_users', 'auth_version', 'event users have a JWT auth version');
 select has_table('public', 'markets', 'markets table exists');
 select has_table('public', 'trades', 'trades table exists');
 select has_table('public', 'rate_limit_buckets', 'rate limit table exists');
@@ -478,6 +479,42 @@ select is(
 
 select lives_ok(
   $$
+    create temp table registered_user_context as
+    select id as user_id
+    from public.register_event_user(
+      '99000002',
+      'scrypt$16384$8$1$register-salt$register-key'
+    )
+  $$,
+  'public registration creates a password-protected user'
+);
+
+select is(
+  (select count(*) from public.leaderboard_entries where user_id = (select user_id from registered_user_context)),
+  1::bigint,
+  'registered user is added to the leaderboard'
+);
+
+select is(
+  (select count(*) from public.ledger_entries where user_id = (select user_id from registered_user_context) and kind = 'initial_grant'),
+  1::bigint,
+  'registered user receives one initial grant'
+);
+
+select throws_ok(
+  $$
+    select public.register_event_user(
+      '99000002',
+      'scrypt$16384$8$1$register-salt$register-key'
+    )
+  $$,
+  'P0001',
+  'USER_ALREADY_EXISTS',
+  'registration cannot grant the same UID twice'
+);
+
+select lives_ok(
+  $$
     create temp table managed_user_context as
     select id as user_id
     from public.admin_create_event_user(
@@ -492,6 +529,12 @@ select is(
   (select count(*) from public.leaderboard_entries where user_id = (select user_id from managed_user_context)),
   1::bigint,
   'admin-created user is added to the leaderboard'
+);
+
+select is(
+  (select auth_version from public.event_users where id = (select user_id from managed_user_context)),
+  1,
+  'new user starts at auth version one'
 );
 
 insert into public.uid_sessions(token_hash, user_id, expires_at)
@@ -511,6 +554,12 @@ select is(
   (select count(*) from public.uid_sessions where user_id = (select user_id from managed_user_context)),
   0::bigint,
   'password update revokes existing sessions'
+);
+
+select is(
+  (select auth_version from public.event_users where id = (select user_id from managed_user_context)),
+  2,
+  'password update invalidates existing JWTs by increasing auth version'
 );
 
 select lives_ok(

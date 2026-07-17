@@ -26,7 +26,7 @@ Dien URL, anon key va service-role key do `npx supabase status` tra ve vao `.env
 npm run dev
 ```
 
-Mo `http://localhost:3000`. User phai duoc tao truoc tai `http://localhost:3000/admin` voi UID 8 chu so va password. Admin console yeu cau `ADMIN_SECRET`, co user management, replay/settlement va export user/BXH CSV.
+Mo `http://localhost:3000`. User co the tu tao account bang UID 8 chu so + password; JWT trong cookie `httpOnly` duy tri dang nhap 7 ngay. Admin console tai `http://localhost:3000/admin` yeu cau `ADMIN_SECRET`, co user management, replay/settlement va export user/BXH CSV.
 
 ## Kiem thu
 

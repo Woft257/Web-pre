@@ -61,8 +61,10 @@ export async function GET(
       oracleVersion: market.oracle_version,
       event: market.latest_event,
     };
-    const mergedHistory = [...providerHistory, ...snapshotHistory, currentPoint]
-      .sort((left, right) => Date.parse(left.sourceAt) - Date.parse(right.sourceAt));
+    const mergedHistory = compactPriceHistory(
+      [...providerHistory, ...snapshotHistory, currentPoint]
+        .sort((left, right) => Date.parse(left.sourceAt) - Date.parse(right.sourceAt)),
+    );
 
     return apiSuccess({
       ...serializeMarket(market),

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       maskedUid: `${user.uid.slice(0, 2)}****${user.uid.slice(-2)}`,
       balance: microToPoints(user.balance_micro),
     });
-    await issueSession(user.id, request, response);
+    await issueSession(user.id, user.auth_version, response);
     return response;
   } catch (error) {
     return apiFailure(error);

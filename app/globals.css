@@ -1432,6 +1432,32 @@ h2 {
   line-height: 1.5;
 }
 
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 20px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #05070a;
+}
+
+.auth-mode-switch button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.auth-mode-switch button.active {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
 .uid-modal label {
   display: block;
   margin-bottom: 7px;
@@ -1472,6 +1498,12 @@ h2 {
   align-items: center;
   justify-content: space-between;
   color: var(--text-subtle);
+  font-size: 11px;
+}
+
+.uid-form-status {
+  min-height: 28px;
+  padding-top: 2px;
   font-size: 11px;
 }
 

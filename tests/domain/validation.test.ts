@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { formatProbability } from "@/lib/client/api";
-import { quoteRequestSchema, sessionRequestSchema } from "@/lib/validation/schemas";
+import {
+  quoteRequestSchema,
+  registrationRequestSchema,
+  sessionRequestSchema,
+} from "@/lib/validation/schemas";
 
 describe("trade request limits", () => {
   it("keeps the 10 point minimum without an application maximum", () => {
@@ -20,6 +24,15 @@ describe("trade request limits", () => {
   it("requires a password with every UID login", () => {
     expect(() => sessionRequestSchema.parse({ uid: "12345678" })).toThrow();
     expect(sessionRequestSchema.parse({
+      uid: "12345678",
+      password: "password-2026",
+    })).toMatchObject({ uid: "12345678" });
+  });
+
+  it("validates self-registration credentials", () => {
+    expect(() => registrationRequestSchema.parse({ uid: "123", password: "password-2026" }))
+      .toThrow();
+    expect(registrationRequestSchema.parse({
       uid: "12345678",
       password: "password-2026",
     })).toMatchObject({ uid: "12345678" });

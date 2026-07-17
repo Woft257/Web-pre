@@ -27,7 +27,6 @@ set search_path = public
 as $$
 declare
   v_count integer;
-  v_window_started_at timestamptz;
   v_now timestamptz := now();
 begin
   if p_limit <= 0 or p_window_seconds <= 0 then
@@ -61,8 +60,7 @@ begin
       else rate_limit_buckets.window_started_at
     end,
     updated_at = v_now
-  returning request_count, window_started_at
-  into v_count, v_window_started_at;
+  returning request_count into v_count;
 
   delete from public.rate_limit_buckets
   where updated_at < v_now - interval '2 days';

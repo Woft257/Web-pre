@@ -38,6 +38,63 @@ async function makeMarketFresh(
   return market;
 }
 
+test("self-registration issues a persistent JWT that password reset revokes", async ({ page, request }, testInfo) => {
+  const uid = uidFor(testInfo.workerIndex, 6);
+  const updatedPassword = "updated-password-2026";
+
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Create account" }).click();
+  const authOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(authOverflow).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath("self-registration.png"), fullPage: true });
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password", { exact: true }).fill(userPassword);
+  await page.getByLabel("Confirm password").fill(userPassword);
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  await expect(page.getByLabel("Football markets")).toBeVisible();
+
+  const sessionCookie = (await page.context().cookies())
+    .find((cookie) => cookie.name === "mexc_uid_session");
+  expect(sessionCookie).toBeDefined();
+  expect(sessionCookie?.httpOnly).toBe(true);
+  expect(sessionCookie?.value.split(".")).toHaveLength(3);
+
+  const meResponse = await page.request.get("/api/me");
+  expect(meResponse.ok()).toBeTruthy();
+  const userId = (await meResponse.json()).data.id as string;
+
+  const duplicateRegistration = await request.post("/api/register", {
+    data: { uid, password: userPassword },
+  });
+  expect(duplicateRegistration.status()).toBe(409);
+  expect((await duplicateRegistration.json()).error.code).toBe("USER_ALREADY_EXISTS");
+
+  await page.reload();
+  await expect(page.getByLabel("Football markets")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Enter your UID" })).toHaveCount(0);
+
+  const passwordReset = await request.patch(`/api/admin/users/${userId}`, {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+    data: { password: updatedPassword },
+  });
+  expect(passwordReset.ok()).toBeTruthy();
+  expect((await page.request.get("/api/me")).status()).toBe(401);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
+  await page.getByLabel("MEXC UID").fill(uid);
+  await page.getByLabel("Password", { exact: true }).fill(updatedPassword);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByLabel("Football markets")).toBeVisible();
+
+  expect((await page.request.delete("/api/session")).ok()).toBeTruthy();
+  expect((await page.request.get("/api/me")).status()).toBe(401);
+  const deleteUser = await request.delete(`/api/admin/users/${userId}`, {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+  });
+  expect(deleteUser.ok()).toBeTruthy();
+});
+
 test("UID user can quote, buy, and see the live portfolio", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop workflow");
   const uid = uidFor(testInfo.workerIndex);
@@ -75,6 +132,12 @@ test("UID user can quote, buy, and see the live portfolio", async ({ page, reque
 
 test("admin replay tick updates a market through Supabase Realtime", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop realtime workflow");
+  const duplicateKeyErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes("same key")) {
+      duplicateKeyErrors.push(message.text());
+    }
+  });
   const marketsResponse = await request.get("/api/markets");
   const marketsPayload = await marketsResponse.json();
   const market = marketsPayload.data[0];
@@ -145,6 +208,7 @@ test("admin replay tick updates a market through Supabase Realtime", async ({ pa
   expect(resumeResponse.ok()).toBeTruthy();
   await expect(page.locator(".latest-event").getByText("Odds reopened")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Get quote" })).toBeEnabled();
+  expect(duplicateKeyErrors).toEqual([]);
 });
 
 test("mobile market layout has no horizontal document overflow", async ({ page, request }, testInfo) => {
@@ -173,6 +237,11 @@ test("security guards reject invalid UID, anonymous portfolio, and unauthorized 
     data: { uid: "123", password: userPassword },
   });
   expect(invalidUid.status()).toBe(400);
+
+  const invalidRegistration = await request.post("/api/register", {
+    data: { uid: "123", password: userPassword },
+  });
+  expect(invalidRegistration.status()).toBe(400);
 
   const anonymousPortfolio = await request.get("/api/portfolio");
   expect(anonymousPortfolio.status()).toBe(401);

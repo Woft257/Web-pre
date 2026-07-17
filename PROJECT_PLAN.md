@@ -41,8 +41,8 @@
 - [x] Moi UID nhan `10.000` diem khoi tao.
 - [x] Moi lenh toi thieu `10` diem; khong co max order/max exposure, gioi han mua chi la balance kha dung cua UID.
 - [x] Moi UID chi duoc cap diem mot lan trong toan bo su kien.
-- [x] UID dung 8 chu so chi duoc tao boi admin; public login khong tu tao account.
-- [x] Login dung UID + password hash `scrypt`; doi password thu hoi session cu, cookie van random/httpOnly.
+- [x] UID dung 8 chu so co the tu dang ky tren public UI hoac duoc admin tao; unique UID dam bao chi cap diem mot lan.
+- [x] Login dung UID + password hash `scrypt`; JWT HS256 nam trong cookie `httpOnly` 7 ngay va `auth_version` thu hoi token cu khi doi password.
 - [x] Chi hien UID da che tren BXH, vi du `12****78`.
 
 ### 2.3. Co che prediction market
@@ -176,8 +176,8 @@ Tai lieu tham chieu:
 
 ## 6. Mo hinh du lieu
 
-- [x] `User`: UID, password hash, balance, diem khoi tao, thoi diem tao, trang thai.
-- [x] `Session`: token hash, UID/user, thoi han, user agent va thoi diem tao.
+- [x] `User`: UID, password hash, `auth_version`, balance, diem khoi tao, thoi diem tao, trang thai.
+- [x] `Session`: JWT co `sub`, `authVersion`, `iat`, `exp`, issuer/audience va JTI; luu trong cookie `httpOnly`.
 - [x] `Market`: hai doi, loai tran, kickoff, trading end, status, outcome, provider mapping va thong so VMM.
 - [x] Match state nam trong `markets`: phut, ty so, period, event gan nhat, provider timestamp va feed status.
 - [x] `OddsSnapshot`: market, provider, odds goc, fair probability, source/received timestamp va version.
@@ -233,7 +233,8 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ## 8. API du kien
 
-- [x] `POST /api/session` - xac thuc UID + password cua account do admin tao va cap session.
+- [x] `POST /api/register` - tu tao account UID + password, cap diem mot lan va cap JWT.
+- [x] `POST /api/session` - xac thuc UID + password va cap JWT session.
 - [x] `DELETE /api/session` - thoat UID hien tai.
 - [x] `GET /api/me` - balance, equity va thong tin session.
 - [x] `GET /api/markets` - danh sach market va gia hien tai.
@@ -290,7 +291,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### 10.3. Thanh phan chinh
 
-- [x] Form login gom UID 8 chu so + password, co error inline/loading/retry.
+- [x] Form auth co segmented control Sign in/Create account, UID 8 chu so, password/confirm va error inline/loading/retry.
 - [x] Market card: co/ten doi, loai tran, kickoff `GMT+7`, status va xac suat hien tai.
 - [x] Market in-play: ty so, phut, event moi, feed freshness va trang thai Live/Suspended/Ended.
 - [x] Trading panel: chon doi, buy/sell, nhap diem/share, 25/50/75/Max, quote va payout.
@@ -312,7 +313,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [ ] Hien do lech primary/fallback sau khi chot provider production.
 - [x] Admin co the suspend market; direct resume bi chan va chi mo lai sau hai oracle snapshot moi, score khong duoc regression.
 - [x] Admin xem market, feed/oracle timestamp/version, trading status va payout preview truoc settle.
-- [x] Admin quan ly user: add UID/password, reset password/revoke session va delete user chua co trade.
+- [x] Admin quan ly user: add UID/password, reset password/tang `auth_version` de revoke JWT va delete user chua co trade.
 - [x] Admin export BXH day du ra CSV co UID khong che.
 - [x] Admin export toan bo user ra CSV, gom UID/diem/trang thai va khong gom password hash/session.
 - [x] UI bat buoc preview payout truoc khi bat nut settle/void, sau do con browser confirmation truoc commit.
@@ -323,9 +324,9 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ## 12. Bao mat va do tin cay
 
-- [x] Session token ngau nhien chi luu hash o DB; cookie `httpOnly`, Production `secure`, `sameSite=lax`.
+- [x] JWT session HS256 co issuer/audience, key tach context, expiry 7 ngay; cookie `httpOnly`, Production `secure`, `sameSite=lax`.
 - [x] Validate tat ca input tai server bang Zod/RPC; client validation chi ho tro UX.
-- [x] Rate limit atomic endpoint session (IP + UID), market read, quote, trade, leaderboard, provider va admin.
+- [x] Rate limit atomic endpoint register/session (IP + UID), market read, quote, trade, leaderboard, provider va admin.
 - [x] Khong tin balance, price, payout, timestamp hay UID gui tu client; quote duoc ky server-side.
 - [x] Chong replay/double submit bang idempotency key va unique constraint.
 - [x] Khong ghi full UID, session token hoac admin secret vao log client.
@@ -351,7 +352,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### Integration test
 
-- [x] UID/password sai bi tu choi; UID do admin tao nhan diem dung mot lan.
+- [x] UID/password sai bi tu choi; public registration trung UID bi `409` va moi UID chi nhan diem dung mot lan.
 - [x] Portfolio can session hop le; request an danh bi tu choi.
 - [x] E2E kiem tra quote het han va quote co oracle version cu deu tra `409`; zero-slippage policy yeu cau exact version.
 - [x] Oracle doi version lam quote cu bi tu choi `409 ORACLE_VERSION_CHANGED`.
@@ -361,7 +362,8 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### End-to-end va visual test
 
-- [x] Luong admin add UID -> UID/password login -> quote -> buy -> sell/cash-out -> portfolio duoc Playwright kiem tra.
+- [x] Luong self-register -> JWT persist qua reload -> password reset revoke JWT -> login lai duoc Playwright kiem tra.
+- [x] Luong UID/password login -> quote -> buy -> sell/cash-out -> portfolio duoc Playwright kiem tra.
 - [x] Luong replay live -> goal -> suspend -> odds moi/resume va buy/sell/cash-out duoc kiem tra.
 - [ ] Mat feed trong tran giu last price de xem nhung khong cho dat lenh.
 - [ ] Luong ended -> result confirmed -> admin settle -> payout -> BXH cuoi.
@@ -391,7 +393,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 ### Milestone 2 - API va persistence
 
-- [x] Lam admin provision UID/password, login session va cap diem mot lan.
+- [x] Lam self-registration/admin provision UID, password `scrypt`, JWT session va cap diem mot lan.
 - [x] Lam market/quote/trade/portfolio/leaderboard API.
 - [x] Viet va test RPC transaction atomic cho trade/settlement/void.
 - [x] Lam worker ingest Kalshi price + FIFA score, validate va ghi oracle atomic.
@@ -413,7 +415,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [ ] Them provider Production primary/fallback va deviation guard sau khi co credential/coverage.
 - [x] Them idempotency, atomic rate limit, same-origin guard va concurrency test.
 - [ ] Chay unit, integration, E2E, accessibility va visual test.
-- [x] Review server-only secret, RLS/grants, UID masking, session token hash va admin flow.
+- [x] Review server-only secret, RLS/grants, UID masking, JWT issuer/audience/auth version va admin flow.
 
 ### Milestone 5 - Deploy va nghiem thu
 
@@ -446,7 +448,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 ### 17/07/2026 - Bat dau implementation
 
 - Da chot bo mac dinh MVP tai muc 2 de co the trien khai lien tuc; cac gia tri nay phai nam trong config/env, khong hard-code rai rac.
-- Login da chuyen tu UID-only sang UID + password `scrypt`; user chi duoc provision qua admin.
+- Login da chuyen sang UID + password `scrypt`; user co the self-register hoac duoc admin provision.
 - Chua co Supabase project URL/key va chua co live-odds provider credential. Source se gom migration, seed, local/replay provider va env example; ket noi production chi duoc danh dau hoan tat sau khi co credential va smoke test.
 - Ghi chu lich su: ngay 17/07 worker con dung The Odds API prototype; phuong an nay da duoc thay the ngay 18/07.
 - Logo SVG MEXC nguoi dung cung cap da duoc luu nguyen noi dung tai `public/brand/mexc-logo.svg` va dung tren user/admin shell.
@@ -476,3 +478,6 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Bo gioi han mua `2.000`/exposure `5.000`; chi con min `10` va balance kha dung.
 - Xac suat UI co dinh 2 so thap phan; bo link Admin khoi public footer va khoa toan bo `/admin` den khi `ADMIN_SECRET` duoc xac thuc.
 - Admin co user management, password `scrypt`, session revocation, delete guard cho trade history va CSV user/leaderboard export.
+- User co the self-register; auth dung JWT `httpOnly` 7 ngay va password reset tang `auth_version` de vo hieu token cu.
+- Self-registration chi xac nhan nguoi dung giu password, chua xac minh UID thuoc tai khoan MEXC that; neu co giai thuong that phai them MEXC OAuth/API hoac claim code.
+- Reset local data ngay 18/07/2026; sua sach 4 `supabase db lint` warning (loop variable/rate-limit return) va compact history sau merge de khong con React duplicate key.

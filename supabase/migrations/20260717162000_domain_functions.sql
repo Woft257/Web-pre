@@ -76,7 +76,6 @@ declare
   v_mid double precision;
   v_cost double precision;
   v_probability double precision;
-  i integer;
 begin
   if p_budget <= 0 then
     raise exception 'INVALID_BUDGET';

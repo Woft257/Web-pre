@@ -7,6 +7,8 @@ export const sessionRequestSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const registrationRequestSchema = sessionRequestSchema;
+
 export const adminCreateUserSchema = z.object({
   uid: uidSchema,
   password: z.string().min(8).max(128),

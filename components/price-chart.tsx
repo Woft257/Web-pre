@@ -127,10 +127,13 @@ export function PriceChart({
           ))}
           <polyline points={makePolyline("homeProbability")} className="chart-line chart-line-home" />
           <polyline points={makePolyline("awayProbability")} className="chart-line chart-line-away" />
-          {chartHistory.map((point) => {
+          {chartHistory.map((point, index) => {
             if (!point.event) return null;
             return (
-              <g key={`${point.sourceAt}-${point.event}`} className="chart-event-marker">
+              <g
+                key={`${point.sourceAt}-${point.oracleVersion}-${index}`}
+                className="chart-event-marker"
+              >
                 <circle cx={xFor(point.sourceAt)} cy={yFor(point.homeProbability)} r="5" />
                 <title>{point.event}</title>
               </g>

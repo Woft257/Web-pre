@@ -71,6 +71,7 @@ export type Database = {
       }
       event_users: {
         Row: {
+          auth_version: number
           balance_micro: number
           created_at: string
           id: string
@@ -81,6 +82,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_version?: number
           balance_micro?: number
           created_at?: string
           id?: string
@@ -91,6 +93,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_version?: number
           balance_micro?: number
           created_at?: string
           id?: string
@@ -626,6 +629,7 @@ export type Database = {
       admin_create_event_user: {
         Args: { p_password_hash: string; p_uid: string }
         Returns: {
+          auth_version: number
           balance_micro: number
           created_at: string
           id: string
@@ -649,6 +653,7 @@ export type Database = {
       admin_update_user_password: {
         Args: { p_password_hash: string; p_user_id: string }
         Returns: {
+          auth_version: number
           balance_micro: number
           created_at: string
           id: string
@@ -677,6 +682,7 @@ export type Database = {
       create_or_get_event_user: {
         Args: { p_uid: string }
         Returns: {
+          auth_version: number
           balance_micro: number
           created_at: string
           id: string
@@ -744,6 +750,26 @@ export type Database = {
       refresh_leaderboard_for_user: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      register_event_user: {
+        Args: { p_password_hash: string; p_uid: string }
+        Returns: {
+          auth_version: number
+          balance_micro: number
+          created_at: string
+          id: string
+          initial_points_micro: number
+          password_hash: string | null
+          status: string
+          uid: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "event_users"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_market_status: {
         Args: {
