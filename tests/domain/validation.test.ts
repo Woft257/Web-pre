@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { formatProbability } from "@/lib/client/api";
 import {
+  changePasswordSchema,
   quoteRequestSchema,
   registrationRequestSchema,
   sessionRequestSchema,
@@ -36,5 +37,16 @@ describe("trade request limits", () => {
       uid: "12345678",
       password: "password-2026",
     })).toMatchObject({ uid: "12345678" });
+  });
+
+  it("requires a different valid password for account password changes", () => {
+    expect(() => changePasswordSchema.parse({
+      currentPassword: "password-2026",
+      newPassword: "password-2026",
+    })).toThrow();
+    expect(changePasswordSchema.parse({
+      currentPassword: "password-2026",
+      newPassword: "new-password-2026",
+    })).toMatchObject({ newPassword: "new-password-2026" });
   });
 });

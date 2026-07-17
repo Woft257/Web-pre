@@ -3,6 +3,7 @@
 import {
   BarChart3,
   ChevronDown,
+  KeyRound,
   LogOut,
   Menu,
   Trophy,
@@ -11,8 +12,9 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { LeaderboardView } from "@/components/leaderboard-view";
 import { MarketWorkspace } from "@/components/market-workspace";
 import { MexcLogo } from "@/components/mexc-logo";
@@ -47,6 +49,8 @@ export function EventDashboard({
   const [connection, setConnection] = useState<"connecting" | "live" | "offline">("connecting");
   const [loadingView, setLoadingView] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const authEpoch = useRef(0);
 
   const runBackground = useCallback((task: Promise<unknown>) => {
     void task.catch(() => setConnection("offline"));
@@ -62,8 +66,9 @@ export function EventDashboard({
 
   const refreshMe = useCallback(async () => {
     if (!user) return;
+    const requestEpoch = authEpoch.current;
     const data = await apiRequest<CurrentUser>("/api/me");
-    setUser(data);
+    if (authEpoch.current === requestEpoch) setUser(data);
   }, [user]);
 
   const refreshLeaderboard = useCallback(async () => {
@@ -77,11 +82,13 @@ export function EventDashboard({
 
   const refreshPortfolio = useCallback(async () => {
     if (!user) return;
+    const requestEpoch = authEpoch.current;
     setLoadingView(true);
     try {
-      setPortfolio(await apiRequest<PortfolioData>("/api/portfolio"));
+      const data = await apiRequest<PortfolioData>("/api/portfolio");
+      if (authEpoch.current === requestEpoch) setPortfolio(data);
     } finally {
-      setLoadingView(false);
+      if (authEpoch.current === requestEpoch) setLoadingView(false);
     }
   }, [user]);
 
@@ -158,10 +165,22 @@ export function EventDashboard({
   );
 
   async function signOut() {
+    authEpoch.current += 1;
     await apiRequest<{ signedOut: boolean }>("/api/session", { method: "DELETE" });
     setUser(null);
     setPortfolio(null);
     setMobileMenu(false);
+    setAccountOpen(false);
+  }
+
+  function authenticateUser(nextUser: CurrentUser) {
+    authEpoch.current += 1;
+    setUser(nextUser);
+  }
+
+  function openAccountSecurity() {
+    setMobileMenu(false);
+    setAccountOpen(true);
   }
 
   function switchTab(tab: Tab) {
@@ -192,10 +211,20 @@ export function EventDashboard({
               <span /> {connection === "live" ? "Live" : connection}
             </div>
             {user && (
-              <div className="user-pill">
-                <span><UserRound size={16} /> {user.maskedUid}</span>
-                <strong>{formatPoints(user.balance)} PTS</strong>
-              </div>
+              <>
+                <div className="user-pill">
+                  <span><UserRound size={16} /> {user.maskedUid}</span>
+                  <strong>{formatPoints(user.balance)} PTS</strong>
+                </div>
+                <div className="desktop-account-actions">
+                  <button className="icon-button" type="button" onClick={openAccountSecurity} title="Change password" aria-label="Change password">
+                    <KeyRound size={17} />
+                  </button>
+                  <button className="icon-button" type="button" onClick={() => void signOut()} title="Sign out" aria-label="Sign out">
+                    <LogOut size={17} />
+                  </button>
+                </div>
+              </>
             )}
             <button className="mobile-menu-button" type="button" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Open menu">
               {mobileMenu ? <X size={21} /> : <Menu size={21} />}
@@ -208,7 +237,8 @@ export function EventDashboard({
             <NavButton active={activeTab === "markets"} onClick={() => switchTab("markets")} icon={<BarChart3 size={17} />} label="Markets" />
             <NavButton active={activeTab === "leaderboard"} onClick={() => switchTab("leaderboard")} icon={<Trophy size={17} />} label="Leaderboard" />
             <NavButton active={activeTab === "portfolio"} onClick={() => switchTab("portfolio")} icon={<WalletCards size={17} />} label="My predictions" />
-            {user && <button type="button" onClick={signOut}><LogOut size={17} /> Sign out</button>}
+            {user && <button type="button" onClick={openAccountSecurity}><KeyRound size={17} /> Change password</button>}
+            {user && <button type="button" onClick={() => void signOut()}><LogOut size={17} /> Sign out</button>}
           </div>
         )}
       </header>
@@ -259,7 +289,8 @@ export function EventDashboard({
         <span>Points event / GMT+7</span>
       </footer>
 
-      {!user && <UidGate onAuthenticated={setUser} />}
+      {!user && <UidGate onAuthenticated={authenticateUser} />}
+      {user && accountOpen && <ChangePasswordDialog onClose={() => setAccountOpen(false)} />}
     </div>
   );
 }

@@ -292,6 +292,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 ### 10.3. Thanh phan chinh
 
 - [x] Form auth co segmented control Sign in/Create account, UID 8 chu so, password/confirm va error inline/loading/retry.
+- [x] User dang nhap co the tu doi password tren desktop/mobile; bat buoc current password va rotate JWT moi sau khi tang `auth_version`.
 - [x] Market card: co/ten doi, loai tran, kickoff `GMT+7`, status va xac suat hien tai.
 - [x] Market in-play: ty so, phut, event moi, feed freshness va trang thai Live/Suspended/Ended.
 - [x] Trading panel: chon doi, buy/sell, nhap diem/share, 25/50/75/Max, quote va payout.
@@ -481,3 +482,5 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - User co the self-register; auth dung JWT `httpOnly` 7 ngay va password reset tang `auth_version` de vo hieu token cu.
 - Self-registration chi xac nhan nguoi dung giu password, chua xac minh UID thuoc tai khoan MEXC that; neu co giai thuong that phai them MEXC OAuth/API hoac claim code.
 - Reset local data ngay 18/07/2026; sua sach 4 `supabase db lint` warning (loop variable/rate-limit return) va compact history sau merge de khong con React duplicate key.
+- User password change xac minh password hien tai, rate limit theo user, rotate JWT cho current session va revoke cac JWT cu qua `auth_version`.
+- Desktop header tach rieng user info, nut Change password va nut Sign out; mobile menu cung co hai action rieng.

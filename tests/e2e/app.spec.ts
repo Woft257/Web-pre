@@ -40,7 +40,8 @@ async function makeMarketFresh(
 
 test("self-registration issues a persistent JWT that password reset revokes", async ({ page, request }, testInfo) => {
   const uid = uidFor(testInfo.workerIndex, 6);
-  const updatedPassword = "updated-password-2026";
+  const selfChangedPassword = "self-changed-password-2026";
+  const adminResetPassword = "admin-reset-password-2026";
 
   await page.goto("/");
   await page.getByRole("tab", { name: "Create account" }).click();
@@ -73,9 +74,39 @@ test("self-registration issues a persistent JWT that password reset revokes", as
   await expect(page.getByLabel("Football markets")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Enter your UID" })).toHaveCount(0);
 
+  if (testInfo.project.name === "mobile-chrome") {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.screenshot({ path: testInfo.outputPath("account-actions.png"), fullPage: true });
+    await page.getByRole("button", { name: "Change password" }).click();
+  } else {
+    await page.screenshot({ path: testInfo.outputPath("account-actions.png"), fullPage: true });
+    await page.getByTitle("Change password").click();
+  }
+  await expect(page.getByRole("heading", { name: "Change password" })).toBeVisible();
+  await page.getByLabel("Current password").fill("incorrect-password-2026");
+  await page.getByLabel("New password", { exact: true }).fill(selfChangedPassword);
+  await page.getByLabel("Confirm new password").fill(selfChangedPassword);
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByText("Current password is incorrect")).toBeVisible();
+
+  await page.getByLabel("Current password").fill(userPassword);
+  await page.screenshot({ path: testInfo.outputPath("change-password.png"), fullPage: true });
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByRole("heading", { name: "Password updated" })).toBeVisible();
+  const rotatedCookie = (await page.context().cookies())
+    .find((cookie) => cookie.name === "mexc_uid_session");
+  expect(rotatedCookie?.value).not.toBe(sessionCookie?.value);
+  expect((await page.request.get("/api/me")).ok()).toBeTruthy();
+  await page.getByRole("button", { name: "Done" }).click();
+
+  const oldPasswordLogin = await request.post("/api/session", {
+    data: { uid, password: userPassword },
+  });
+  expect(oldPasswordLogin.status()).toBe(401);
+
   const passwordReset = await request.patch(`/api/admin/users/${userId}`, {
     headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: { password: updatedPassword },
+    data: { password: adminResetPassword },
   });
   expect(passwordReset.ok()).toBeTruthy();
   expect((await page.request.get("/api/me")).status()).toBe(401);
@@ -83,11 +114,17 @@ test("self-registration issues a persistent JWT that password reset revokes", as
   await page.reload();
   await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
   await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password", { exact: true }).fill(updatedPassword);
+  await page.getByLabel("Password", { exact: true }).fill(adminResetPassword);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Football markets")).toBeVisible();
 
-  expect((await page.request.delete("/api/session")).ok()).toBeTruthy();
+  if (testInfo.project.name === "mobile-chrome") {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("button", { name: "Sign out" }).click();
+  } else {
+    await page.getByTitle("Sign out").click();
+  }
+  await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
   expect((await page.request.get("/api/me")).status()).toBe(401);
   const deleteUser = await request.delete(`/api/admin/users/${userId}`, {
     headers: { "x-admin-secret": "local-admin-secret-change-me" },
@@ -245,6 +282,11 @@ test("security guards reject invalid UID, anonymous portfolio, and unauthorized 
 
   const anonymousPortfolio = await request.get("/api/portfolio");
   expect(anonymousPortfolio.status()).toBe(401);
+
+  const anonymousPasswordChange = await request.patch("/api/account/password", {
+    data: { currentPassword: userPassword, newPassword: "new-password-2026" },
+  });
+  expect(anonymousPasswordChange.status()).toBe(401);
 
   const marketsPayload = await (await request.get("/api/markets")).json();
   const unauthorizedAdmin = await request.post(

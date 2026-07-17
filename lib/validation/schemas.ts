@@ -18,6 +18,14 @@ export const adminUpdatePasswordSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128),
+}).refine((value) => value.currentPassword !== value.newPassword, {
+  message: "New password must be different from the current password",
+  path: ["newPassword"],
+});
+
 export const quoteRequestSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("buy"),
