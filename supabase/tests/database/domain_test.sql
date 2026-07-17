@@ -1,6 +1,6 @@
 begin;
 
-select plan(52);
+select plan(57);
 
 select has_table('public', 'event_users', 'event_users table exists');
 select has_column('public', 'event_users', 'auth_version', 'event users have a JWT auth version');
@@ -57,7 +57,7 @@ with test_market as (
     now() + interval '1 day',
     now() + interval '2 days',
     'pre_match_open',
-    'replay',
+    'kalshi-fifa',
     'domain-test-provider-event',
     now(),
     now()
@@ -97,7 +97,7 @@ with void_market as (
     now() + interval '1 day',
     now() + interval '2 days',
     'pre_match_open',
-    'replay',
+    'kalshi-fifa',
     'domain-void-provider-event',
     now(),
     now()
@@ -106,6 +106,44 @@ with void_market as (
 )
 update test_context
 set void_market_id = (select id from void_market);
+
+select lives_ok(
+  $$
+    select public.admin_update_match_state(
+      (select market_id from test_context),
+      0::smallint,
+      0::smallint,
+      8::smallint,
+      'Admin match note',
+      'test-admin'
+    )
+  $$,
+  'admin can update match state without touching the oracle'
+);
+
+select is(
+  (select oracle_home_probability_ppm from public.markets where id = (select market_id from test_context)),
+  500000,
+  'admin match state keeps the Kalshi probability unchanged'
+);
+
+select is(
+  (select oracle_version from public.markets where id = (select market_id from test_context)),
+  1::bigint,
+  'admin match state does not increment oracle version'
+);
+
+select is(
+  (select count(*) from public.odds_snapshots where market_id = (select market_id from test_context)),
+  0::bigint,
+  'admin match state does not create a price snapshot'
+);
+
+select is(
+  (select count(*) from public.admin_audit_logs where market_id = (select market_id from test_context) and action = 'update_match_state'),
+  1::bigint,
+  'admin match state is audited'
+);
 
 select is(
   (select count(*)
@@ -171,7 +209,7 @@ select lives_ok(
   $$
     select public.update_market_oracle(
       (select market_id from test_context),
-      'replay',
+      'kalshi-fifa',
       300000,
       700000,
       now() + interval '1 second',
@@ -246,7 +284,7 @@ select lives_ok(
   $$
     select public.update_market_oracle(
       (select market_id from test_context),
-      'replay',
+      'kalshi-fifa',
       310000,
       690000,
       now() + interval '2 seconds',
@@ -275,7 +313,7 @@ select lives_ok(
   $$
     select public.update_market_oracle(
       (select market_id from test_context),
-      'replay',
+      'kalshi-fifa',
       320000,
       680000,
       now() + interval '3 seconds',
@@ -304,7 +342,7 @@ select throws_ok(
   $$
     select public.update_market_oracle(
       (select market_id from test_context),
-      'replay',
+      'kalshi-fifa',
       330000,
       670000,
       now() + interval '4 seconds',
@@ -332,7 +370,7 @@ select lives_ok(
   $$
     select public.heartbeat_market_feed(
       (select market_id from test_context),
-      'replay',
+      'kalshi-fifa',
       now() + interval '6 seconds',
       36::smallint,
       'second_half'

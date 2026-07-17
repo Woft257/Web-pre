@@ -62,7 +62,7 @@ export const adminVoidSchema = z.object({
 
 export const oracleUpdateSchema = z.object({
   marketId: z.uuid(),
-  provider: z.string().min(2).max(50),
+  provider: z.literal("kalshi-fifa"),
   homeProbability: z.number().min(0.01).max(0.99),
   awayProbability: z.number().min(0.01).max(0.99),
   sourceAt: z.iso.datetime(),

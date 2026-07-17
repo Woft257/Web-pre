@@ -37,6 +37,13 @@ describe("atomic trade concurrency", () => {
     expect(marketError).toBeNull();
     expect(market).toBeTruthy();
 
+    const { error: heartbeatError } = await supabase.rpc("heartbeat_market_feed", {
+      p_market_id: market!.id,
+      p_provider: "kalshi-fifa",
+      p_source_at: new Date().toISOString(),
+    });
+    expect(heartbeatError).toBeNull();
+
     const trade = (suffix: string) => supabase.rpc("place_trade", {
       p_user_id: user!.id,
       p_market_id: market!.id,

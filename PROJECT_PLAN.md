@@ -314,6 +314,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [ ] Hien do lech primary/fallback sau khi chot provider production.
 - [x] Admin co the suspend market; direct resume bi chan va chi mo lai sau hai oracle snapshot moi, score khong duoc regression.
 - [x] Admin xem market, feed/oracle timestamp/version, trading status va payout preview truoc settle.
+- [x] Admin khong co quyen sua probability/oracle; match-state chi sua score/phut/event va gia chi nhan `kalshi-fifa` o API + DB constraint.
 - [x] Admin quan ly user: add UID/password, reset password/tang `auth_version` de revoke JWT va delete user chua co trade.
 - [x] Admin export BXH day du ra CSV co UID khong che.
 - [x] Admin export toan bo user ra CSV, gom UID/diem/trang thai va khong gom password hash/session.
@@ -365,7 +366,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 - [x] Luong self-register -> JWT persist qua reload -> password reset revoke JWT -> login lai duoc Playwright kiem tra.
 - [x] Luong UID/password login -> quote -> buy -> sell/cash-out -> portfolio duoc Playwright kiem tra.
-- [x] Luong replay live -> goal -> suspend -> odds moi/resume va buy/sell/cash-out duoc kiem tra.
+- [x] Luong admin match-state -> goal -> suspend -> hai Kalshi worker snapshot moi/resume duoc kiem tra; admin price payload bi tu choi.
 - [ ] Mat feed trong tran giu last price de xem nhung khong cho dat lenh.
 - [ ] Luong ended -> result confirmed -> admin settle -> payout -> BXH cuoi.
 - [ ] Luong void/refund.
@@ -389,7 +390,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Scaffold Next.js, lint, TypeScript, Vitest/Playwright va env example.
 - [x] Cai dat Supabase local/CLI, migration va seed SQL cho hai market.
 - [x] Tao schema, generated database types va repository/service layer cho Supabase.
-- [x] Tao Kalshi/FIFA adapter va giu admin replay mode de test an toan.
+- [x] Tao Kalshi/FIFA adapter; test oracle cung di qua worker-auth Kalshi, khong co admin replay price.
 - [x] Viet domain/RPC logic oracle-VMM, ledger, position va settlement kem test.
 
 ### Milestone 2 - API va persistence
@@ -400,7 +401,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Lam worker ingest Kalshi price + FIFA score, validate va ghi oracle atomic.
 - [ ] Them health/alert cho worker va primary/fallback neu can.
 - [x] Bat RLS, policy/grants va Realtime publication toi thieu can thiet.
-- [x] Lam admin status/replay/preview/settle/void va audit log.
+- [x] Lam admin status/match-state/preview/settle/void va audit log; match-state khong cham oracle.
 
 ### Milestone 3 - Giao dien MEXC
 
@@ -450,15 +451,15 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 - Da chot bo mac dinh MVP tai muc 2 de co the trien khai lien tuc; cac gia tri nay phai nam trong config/env, khong hard-code rai rac.
 - Login da chuyen sang UID + password `scrypt`; user co the self-register hoac duoc admin provision.
-- Chua co Supabase project URL/key va chua co live-odds provider credential. Source se gom migration, seed, local/replay provider va env example; ket noi production chi duoc danh dau hoan tat sau khi co credential va smoke test.
+- Chua co Supabase Production project URL/key. Kalshi/FIFA khong can provider API key; ket noi production chi duoc danh dau hoan tat sau smoke test/rehearsal.
 - Ghi chu lich su: ngay 17/07 worker con dung The Odds API prototype; phuong an nay da duoc thay the ngay 18/07.
 - Logo SVG MEXC nguoi dung cung cap da duoc luu nguyen noi dung tai `public/brand/mexc-logo.svg` va dung tren user/admin shell.
 
 ### 17/07/2026 - MVP local da kiem thu
 
-- Next.js frontend/API, Supabase migrations/seed/RLS/RPC/Realtime, replay admin va giao dien MEXC da co trong repository; live worker duoc thay bang Kalshi/FIFA vao 18/07.
-- Local database reset thanh cong tu ba migration va `supabase/seed.sql`; `/api/health` tra `200`, database connected va dung hai market.
-- Ket qua verification moi nhat: ESLint pass, TypeScript pass, production build pass, `npm audit` co `0 vulnerabilities`, Vitest `6/6`, integration concurrency `1/1`, pgTAP `34/34`, Playwright `7/7` case muc tieu pass (`7` case khac skip co chu dich theo project/viewport).
+- Next.js frontend/API, Supabase migrations/seed/RLS/RPC/Realtime, admin operations va giao dien MEXC da co trong repository; oracle price chi con Kalshi/FIFA worker.
+- Local database reset thanh cong tu toan bo migration va `supabase/seed.sql`; `/api/health` tra `200`, database connected va dung hai market.
+- Ket qua verification moi nhat: ESLint pass, TypeScript pass, production build pass, `npm audit` co `0 vulnerabilities`, Vitest `28/28`, integration concurrency `1/1`, pgTAP `57/57`, Playwright `9/9` workflow ap dung pass (`7` case skip co chu dich theo project/viewport).
 - Playwright da test buy + sell/cash-out, Realtime goal/suspend/hai-snapshot-resume, oracle-version/expired quote, UID/admin guard, settle/void preview, asset flags va overflow tai 375/768/1280/1440px.
 - README da ghi cach chay local, test, worker va checklist deploy. Dev app: `http://localhost:3000`; local Supabase Studio: `http://127.0.0.1:54323`.
 - `RUNBOOK.md` da co checklist T-7/T-1/T-30, live monitoring, incident, settle/void va post-event; can dien URL/contact/provider threshold khi chot Production.
@@ -484,3 +485,4 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Reset local data ngay 18/07/2026; sua sach 4 `supabase db lint` warning (loop variable/rate-limit return) va compact history sau merge de khong con React duplicate key.
 - User password change xac minh password hien tai, rate limit theo user, rotate JWT cho current session va revoke cac JWT cu qua `auth_version`.
 - Desktop header tach rieng user info, nut Change password va nut Sign out; mobile menu cung co hai action rieng.
+- Bo text `Kalshi midpoint` tren market detail; xoa admin replay price route/slider, them RPC match-state khong doi oracle va DB constraint chi chap nhan provider `kalshi-fifa`.

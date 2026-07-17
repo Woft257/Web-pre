@@ -35,6 +35,7 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 ### T-30 phut
 
 - Xac nhan feed `healthy`, score `0-0`, oracle timestamp moi va Realtime dang `live`.
+- Xac nhan admin Match state khong co probability input; moi price tick phai co provider `kalshi-fifa`.
 - Kiem tra mot UID test co the quote; khong commit trade test tren Production neu khong co UID test rieng.
 - Mo admin operations va provider dashboard tren may truc.
 

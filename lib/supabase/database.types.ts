@@ -650,6 +650,64 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      admin_update_match_state: {
+        Args: {
+          p_actor?: string
+          p_away_score: number
+          p_home_score: number
+          p_latest_event?: string
+          p_market_id: string
+          p_match_minute?: number
+        }
+        Returns: {
+          away_code: string
+          away_inventory_microshares: number
+          away_name: string
+          away_score: number
+          competition: string
+          created_at: string
+          feed_status: Database["public"]["Enums"]["feed_status"]
+          home_code: string
+          home_inventory_microshares: number
+          home_name: string
+          home_score: number
+          id: string
+          kickoff_at: string
+          latest_event: string | null
+          liquidity_b_microshares: number
+          match_minute: number | null
+          match_period: string | null
+          max_order_micro: number
+          max_user_exposure_micro: number
+          min_order_micro: number
+          oracle_away_probability_ppm: number
+          oracle_home_probability_ppm: number
+          oracle_received_at: string | null
+          oracle_source_at: string | null
+          oracle_version: number
+          outcome: Database["public"]["Enums"]["market_side"] | null
+          provider: string
+          provider_event_id: string | null
+          settled_at: string | null
+          slug: string
+          spread_bps: number
+          stage: string
+          status: Database["public"]["Enums"]["market_status"]
+          suspended_at: string | null
+          suspended_oracle_version: number | null
+          suspension_reason: string | null
+          title: string
+          trading_end_at: string
+          updated_at: string
+          vmm_version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "markets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_update_user_password: {
         Args: { p_password_hash: string; p_user_id: string }
         Returns: {

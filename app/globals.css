@@ -647,8 +647,7 @@ h2 {
   gap: 3px;
 }
 
-.outcome-price > span,
-.outcome-price small {
+.outcome-price > span {
   color: var(--text-muted);
 }
 

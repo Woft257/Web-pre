@@ -50,12 +50,10 @@ export function AdminConsole() {
   const [newUid, setNewUid] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordEdits, setPasswordEdits] = useState<Record<string, string>>({});
-  const [homeProbability, setHomeProbability] = useState(0.5);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
   const [minute, setMinute] = useState<number | null>(null);
-  const [status, setStatus] = useState<"pre_match_open" | "live_open" | "suspended" | "ended">("pre_match_open");
-  const [event, setEvent] = useState("Manual replay tick");
+  const [event, setEvent] = useState("Manual match state update");
   const [outcome, setOutcome] = useState<"home" | "away">("home");
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [message, setMessage] = useState("");
@@ -67,15 +65,9 @@ export function AdminConsole() {
   useEffect(() => {
     if (!market) return;
     const timer = window.setTimeout(() => {
-      setHomeProbability(market.home.oracleProbability);
       setHomeScore(market.home.score);
       setAwayScore(market.away.score);
       setMinute(market.matchMinute);
-      setStatus(
-        ["pre_match_open", "live_open", "suspended", "ended"].includes(market.status)
-          ? (market.status as typeof status)
-          : "ended",
-      );
       setOutcome("home");
       setPreview(null);
     }, 0);
@@ -214,23 +206,21 @@ export function AdminConsole() {
     }
   }
 
-  async function submitReplay(eventObject: FormEvent) {
+  async function submitMatchState(eventObject: FormEvent) {
     eventObject.preventDefault();
     if (!market) return;
     await runAction(async () => {
-      await apiRequest(`/api/admin/markets/${market.id}/replay`, {
+      await apiRequest(`/api/admin/markets/${market.id}/match-state`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
-          homeProbability,
           homeScore,
           awayScore,
           matchMinute: minute,
-          status,
           event,
         }),
       });
-      setMessage("Replay tick applied");
+      setMessage("Match state updated without changing Kalshi prices");
     });
   }
 
@@ -501,22 +491,17 @@ export function AdminConsole() {
 
         <div className="admin-grid">
           <section className="admin-panel">
-            <div className="subsection-title"><Activity size={18} /><h2>Replay oracle</h2></div>
-            <form onSubmit={submitReplay}>
-              <div className="admin-field">
-                <label htmlFor="home-probability">{market.home.code} probability: {formatProbability(homeProbability)}</label>
-                <input id="home-probability" type="range" min="0.01" max="0.99" step="0.01" value={homeProbability} onChange={(e) => setHomeProbability(Number(e.target.value))} />
-              </div>
+            <div className="subsection-title"><Activity size={18} /><h2>Match state</h2></div>
+            <form onSubmit={submitMatchState}>
               <div className="admin-field-row">
                 <div className="admin-field"><label htmlFor="home-score">{market.home.code} score</label><input id="home-score" type="number" min="0" value={homeScore} onChange={(e) => setHomeScore(Number(e.target.value))} /></div>
                 <div className="admin-field"><label htmlFor="away-score">{market.away.code} score</label><input id="away-score" type="number" min="0" value={awayScore} onChange={(e) => setAwayScore(Number(e.target.value))} /></div>
               </div>
               <div className="admin-field-row">
                 <div className="admin-field"><label htmlFor="minute">Minute</label><input id="minute" type="number" min="0" max="150" value={minute ?? ""} onChange={(e) => setMinute(e.target.value ? Number(e.target.value) : null)} /></div>
-                <div className="admin-field"><label htmlFor="replay-status">Status</label><select id="replay-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}><option value="pre_match_open">Pre-match</option><option value="live_open">Live</option><option value="suspended">Suspended</option><option value="ended">Ended</option></select></div>
               </div>
               <div className="admin-field"><label htmlFor="event">Event</label><input id="event" value={event} onChange={(e) => setEvent(e.target.value)} /></div>
-              <button className="primary-button wide-button" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <Radio size={18} />} Apply tick</button>
+              <button className="primary-button wide-button" type="submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <Radio size={18} />} Apply match state</button>
             </form>
           </section>
 

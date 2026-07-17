@@ -84,7 +84,6 @@ export function MarketWorkspace({
           <div className="outcome-price home-outcome">
             <span>{market.home.name}</span>
             <strong>{formatProbability(market.home.price)}</strong>
-            <small>Kalshi midpoint</small>
           </div>
           <div className="probability-track" aria-hidden="true">
             <span style={{ width: `${market.home.price * 100}%` }} />
@@ -92,7 +91,6 @@ export function MarketWorkspace({
           <div className="outcome-price away-outcome">
             <span>{market.away.name}</span>
             <strong>{formatProbability(market.away.price)}</strong>
-            <small>Kalshi midpoint</small>
           </div>
         </section>
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatProbability } from "@/lib/client/api";
 import {
   changePasswordSchema,
+  oracleUpdateSchema,
   quoteRequestSchema,
   registrationRequestSchema,
   sessionRequestSchema,
@@ -48,5 +49,21 @@ describe("trade request limits", () => {
       currentPassword: "password-2026",
       newPassword: "new-password-2026",
     })).toMatchObject({ newPassword: "new-password-2026" });
+  });
+
+  it("only accepts Kalshi/FIFA as the oracle update provider", () => {
+    const update = {
+      marketId: "10000000-0000-4000-8000-000000000001",
+      provider: "kalshi-fifa",
+      homeProbability: 0.6,
+      awayProbability: 0.4,
+      sourceAt: "2026-07-18T01:00:00.000Z",
+      status: "live_open",
+      homeScore: 0,
+      awayScore: 0,
+    };
+
+    expect(oracleUpdateSchema.parse(update)).toMatchObject({ provider: "kalshi-fifa" });
+    expect(() => oracleUpdateSchema.parse({ ...update, provider: "replay" })).toThrow();
   });
 });

@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 
 const runSeed = Number(String(Date.now()).slice(-5));
 const userPassword = "test-password-2026";
+const workerSecret = process.env.ODDS_WORKER_SECRET ?? "local-worker-secret-change-me";
 
 function uidFor(workerIndex: number, offset = 0) {
   return String(60_000_000 + runSeed * 100 + workerIndex * 10 + offset).padStart(8, "0");
@@ -23,19 +24,47 @@ async function makeMarketFresh(
 ) {
   const marketsPayload = await (await request.get("/api/markets")).json();
   const market = marketsPayload.data[marketIndex];
-  const response = await request.post(`/api/admin/markets/${market.id}/replay`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeProbability: market.home.oracleProbability,
-      homeScore: market.home.score,
-      awayScore: market.away.score,
-      matchMinute: market.matchMinute,
-      status: market.status,
-      event: "E2E fresh feed",
-    },
-  });
+  const response = await pushKalshiUpdate(request, market.id, {});
   expect(response.ok()).toBeTruthy();
   return market;
+}
+
+async function pushKalshiUpdate(
+  request: import("@playwright/test").APIRequestContext,
+  marketId: string,
+  overrides: {
+    homeProbability?: number;
+    homeScore?: number;
+    awayScore?: number;
+    matchMinute?: number | null;
+    status?: "pre_match_open" | "live_open" | "suspended" | "ended";
+    latestEvent?: string;
+  },
+) {
+  const marketsPayload = await (await request.get("/api/markets")).json();
+  const market = marketsPayload.data.find((item: { id: string }) => item.id === marketId);
+  const homeProbability = overrides.homeProbability ?? market.home.oracleProbability;
+  const sourceAt = new Date(Math.max(
+    Date.now(),
+    Date.parse(market.oracleSourceAt ?? "1970-01-01T00:00:00Z") + 1,
+  )).toISOString();
+  return request.post("/api/provider/webhook", {
+    headers: { "x-worker-secret": workerSecret },
+    data: {
+      marketId,
+      provider: "kalshi-fifa",
+      homeProbability,
+      awayProbability: 1 - homeProbability,
+      sourceAt,
+      status: overrides.status ?? market.status,
+      homeScore: overrides.homeScore ?? market.home.score,
+      awayScore: overrides.awayScore ?? market.away.score,
+      matchMinute: overrides.matchMinute === undefined ? market.matchMinute : overrides.matchMinute,
+      matchPeriod: "e2e",
+      latestEvent: overrides.latestEvent ?? "E2E Kalshi/FIFA update",
+      rawPayload: { source: "e2e-kalshi-fifa" },
+    },
+  });
 }
 
 test("self-registration issues a persistent JWT that password reset revokes", async ({ page, request }, testInfo) => {
@@ -167,7 +196,7 @@ test("UID user can quote, buy, and see the live portfolio", async ({ page, reque
   await page.screenshot({ path: testInfo.outputPath("desktop-portfolio.png"), fullPage: true });
 });
 
-test("admin replay tick updates a market through Supabase Realtime", async ({ page, request }, testInfo) => {
+test("admin match state cannot change Kalshi prices and provider updates remain realtime", async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop realtime workflow");
   const duplicateKeyErrors: string[] = [];
   page.on("console", (message) => {
@@ -186,19 +215,35 @@ test("admin replay tick updates a market through Supabase Realtime", async ({ pa
   await page.getByLabel("Password").fill(userPassword);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("Football markets")).toBeVisible();
+  await expect(page.getByText("Kalshi midpoint")).toHaveCount(0);
 
-  const replayResponse = await request.post(`/api/admin/markets/${market.id}/replay`, {
+  const rejectedPriceEdit = await request.post(`/api/admin/markets/${market.id}/match-state`, {
     headers: { "x-admin-secret": "local-admin-secret-change-me" },
     data: {
       homeProbability: 0.3,
       homeScore: 0,
       awayScore: 1,
       matchMinute: 32,
-      status: "live_open",
       event: "England goal",
     },
   });
-  expect(replayResponse.ok()).toBeTruthy();
+  expect(rejectedPriceEdit.status()).toBe(400);
+
+  const matchStateResponse = await request.post(`/api/admin/markets/${market.id}/match-state`, {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+    data: {
+      homeScore: 0,
+      awayScore: 1,
+      matchMinute: 32,
+      event: "England goal",
+    },
+  });
+  expect(matchStateResponse.ok()).toBeTruthy();
+  const marketAfterAdmin = (await (await request.get("/api/markets")).json()).data
+    .find((item: { id: string }) => item.id === market.id);
+  expect(marketAfterAdmin.home.oracleProbability).toBe(market.home.oracleProbability);
+  expect(marketAfterAdmin.oracleVersion).toBe(market.oracleVersion);
+  await page.screenshot({ path: testInfo.outputPath("kalshi-only-market.png"), fullPage: true });
 
   await expect(page.locator(".latest-event").getByText("England goal")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("32'")).toBeVisible();
@@ -217,30 +262,24 @@ test("admin replay tick updates a market through Supabase Realtime", async ({ pa
   });
   expect(unsafeResume.status()).toBe(409);
 
-  const confirmationResponse = await request.post(`/api/admin/markets/${market.id}/replay`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeProbability: 0.31,
-      homeScore: 0,
-      awayScore: 1,
-      matchMinute: 33,
-      status: "live_open",
-      event: "Fresh odds confirmation 1/2",
-    },
+  const confirmationResponse = await pushKalshiUpdate(request, market.id, {
+    homeProbability: 0.31,
+    homeScore: 0,
+    awayScore: 1,
+    matchMinute: 33,
+    status: "live_open",
+    latestEvent: "Fresh Kalshi odds confirmation 1/2",
   });
   expect(confirmationResponse.ok()).toBeTruthy();
   await expect(page.getByText("Awaiting second fresh odds snapshot").first()).toBeVisible({ timeout: 10_000 });
 
-  const resumeResponse = await request.post(`/api/admin/markets/${market.id}/replay`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeProbability: 0.32,
-      homeScore: 0,
-      awayScore: 1,
-      matchMinute: 34,
-      status: "live_open",
-      event: "Odds reopened",
-    },
+  const resumeResponse = await pushKalshiUpdate(request, market.id, {
+    homeProbability: 0.32,
+    homeScore: 0,
+    awayScore: 1,
+    matchMinute: 34,
+    status: "live_open",
+    latestEvent: "Odds reopened",
   });
   expect(resumeResponse.ok()).toBeTruthy();
   await expect(page.locator(".latest-event").getByText("Odds reopened")).toBeVisible({ timeout: 10_000 });
@@ -318,16 +357,13 @@ test("an oracle update invalidates an outstanding quote", async ({ page, request
   expect(quoteResponse.ok()).toBeTruthy();
   const quote = (await quoteResponse.json()).data;
 
-  const oracleUpdate = await request.post(`/api/admin/markets/${market.id}/replay`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeProbability: 0.6,
-      homeScore: 0,
-      awayScore: 0,
-      matchMinute: null,
-      status: "pre_match_open",
-      event: "Pre-match price update",
-    },
+  const oracleUpdate = await pushKalshiUpdate(request, market.id, {
+    homeProbability: 0.6,
+    homeScore: 0,
+    awayScore: 0,
+    matchMinute: null,
+    status: "pre_match_open",
+    latestEvent: "Pre-match Kalshi price update",
   });
   expect(oracleUpdate.ok()).toBeTruthy();
 
@@ -359,6 +395,9 @@ test("admin requires settlement and void previews before commit", async ({ page 
   await page.getByLabel("Admin secret").fill("local-admin-secret-change-me");
   await page.getByRole("button", { name: "Unlock operations" }).click();
   await expect(page.getByRole("heading", { name: "Market control" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Match state" })).toBeVisible();
+  await expect(page.getByLabel(/probability/i)).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("admin-match-state.png"), fullPage: true });
 
   const managedUid = uidFor(testInfo.workerIndex, 5);
   await page.getByLabel("UID", { exact: true }).fill(managedUid);

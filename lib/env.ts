@@ -8,7 +8,7 @@ const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(10),
   SESSION_SECRET: z.string().min(32),
   ADMIN_SECRET: z.string().min(12),
-  ODDS_PROVIDER: z.enum(["replay", "kalshi-fifa"]).default("kalshi-fifa"),
+  ODDS_PROVIDER: z.literal("kalshi-fifa").default("kalshi-fifa"),
   LIVE_FEED_POLL_INTERVAL_MS: z.coerce.number().int().min(500).default(2_000),
   ODDS_WORKER_SECRET: z.string().min(12),
   NEXT_PUBLIC_APP_TIME_ZONE: z.string().default("Asia/Bangkok"),
