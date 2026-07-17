@@ -49,9 +49,6 @@ export async function POST(
       if (user.balance_micro < amountMicro) {
         throw new ApiError(409, "INSUFFICIENT_BALANCE", "Not enough available points");
       }
-      if ((position?.gross_bought_micro ?? 0) + amountMicro > market.max_user_exposure_micro) {
-        throw new ApiError(409, "MARKET_EXPOSURE_LIMIT", "This order exceeds the market exposure limit");
-      }
       quote = quoteBuy(state, body.side, body.amount);
     } else {
       amountMicro = Math.round(body.shares * MICRO_UNITS);

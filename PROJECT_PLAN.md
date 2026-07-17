@@ -1,6 +1,6 @@
 # Ke hoach du an MEXC Football Prediction
 
-> Trang thai: MVP local da trien khai va kiem thu; dang cho Supabase/Vercel Production va live-odds provider co SLA.
+> Trang thai: MVP local da trien khai; live worker da dung Kalshi price + FIFA score, con cho Production deploy va rehearsal.
 >
 > Muc tieu: xay dung mot ung dung du doan ket qua bong da bang diem, trai nghiem giao dich tuong tu Polymarket, giao dien theo nhan dien MEXC, frontend va API cung nam trong mot du an Next.js de deploy tren Vercel.
 
@@ -39,7 +39,7 @@
 ### 2.2. Diem va danh tinh
 
 - [x] Moi UID nhan `10.000` diem khoi tao.
-- [x] Moi lenh toi thieu `10`, toi da `2.000` diem; exposure moi UID toi da `5.000` diem tren mot market.
+- [x] Moi lenh toi thieu `10` diem; khong co max order/max exposure, gioi han mua chi la balance kha dung cua UID.
 - [x] Moi UID chi duoc cap diem mot lan trong toan bo su kien.
 - [x] MVP cho phep bat ky UID dung 8 chu so tao tai khoan; co the them whitelist bang migration sau.
 - [x] MVP dung UID-only theo yeu cau, session cookie signed/httpOnly. Ghi nhan rui ro: ai biet UID co the gia mao; production co giai thuong nen them PIN/claim code.
@@ -133,43 +133,45 @@ tests/
 
 ### 5.1. Phan biet du lieu tran va du lieu gia
 
-- [x] Live score/event feed chi cho biet ty so, phut, goal, VAR, penalty va the do; no khong du de tu suy ra xac suat hop ly.
-- [x] Live odds feed la nguon tao gia tham chieu vi da phan anh ty so, thoi gian con lai, suc manh doi, the phat va thong tin trong tran.
+- [x] FIFA live API chi dung de doc ty so, phut va trang thai tran; khong ingest the, VAR hay event khac.
+- [x] Kalshi la nguon gia duy nhat; gia cap nhat cua phan anh thong tin trong tran ma khong can user noi bo tao thanh khoan.
 - [x] Supabase Realtime chi phat gia/trang thai da xu ly den UI; Supabase khong tu tao odds.
-- [ ] Chon mot provider co live in-play odds cho dung giai dau va dung hai market nay.
-- [ ] Xac nhan market cua provider la `doi thang chung cuoc, gom hiep phu/luan luu`; khong duoc lay odds `1X2 sau 90 phut` roi bo cua hoa.
+- [x] Chon hai cap contract Kalshi cho dung hai tran va map dung doi home/away trong database.
+- [x] Xac nhan rule Kalshi la doi thang tran tranh hang ba va doi vo dich World Cup, khong dung market `1X2 sau 90 phut`.
 - [ ] Xac nhan SLA/do tre, rate limit, quota, dieu khoan hien thi va quyen su dung data cho su kien MEXC.
 
 ### 5.2. Lua chon provider
 
-- [ ] Phuong an production khuyen nghi: Sportradar Unified Odds Feed, co message push realtime qua AMQP, odds change va bet stop; can lien he thuong mai/kiem tra coverage.
-- [x] Da tao adapter/worker prototype The Odds API; worker tu choi market `1X2` ba cua va chi nhan final-winner nhi phan.
-- [ ] Phuong an tham chieu exchange: dung live price tu Polymarket/Betfair neu co dung market va dieu khoan cho phep; phai co fallback khi market khong ton tai/bi dong.
-- [ ] Truoc khi ky goi, chay proof-of-coverage tren mot tran live tuong tu de do do tre goal -> suspend -> odds moi.
+- [x] Price: Kalshi REST public market endpoint, doc bid/ask cua bon ticker da chot.
+- [x] Score: FIFA live endpoint ma WorldCupMatchTime dung, map theo `IdMatch` va ma doi thay vi thu tu home/away cua UI.
+- [x] Worker chi quan tam score tang va trang thai scheduled/live/ended; khong doc Bookings, VAR hay cac event khac.
+- [ ] Chay proof-of-coverage trong hai tran that de do do tre goal -> FIFA score -> Kalshi update -> resume.
 
 Tai lieu tham chieu:
 
-- [The Odds API V4](https://the-odds-api.com/liveapi/guides/v4/)
-- [Sportradar Unified Odds Feed](https://docs.sportradar.com/uof)
+- [Kalshi market data](https://docs.kalshi.com/getting_started/quick_start_market_data)
+- [WorldCupMatchTime schedule](https://www.worldcupmatchtime.com/en/schedule)
+- [FIFA live API - France vs England](https://api.fifa.com/api/v3/live/football/17/285023/289291/400021542)
+- [FIFA live API - Spain vs Argentina](https://api.fifa.com/api/v3/live/football/17/285023/289292/400021543)
 - [Vercel Functions WebSockets](https://vercel.com/docs/functions/websockets)
 
 ### 5.3. Luong ingest
 
-- [x] REST prototype polling tap trung o `worker/odds-ingest.ts`; browser khong goi truc tiep provider.
-- [x] API key provider chi nam o server secret, khong luu trong Supabase public table hay `NEXT_PUBLIC_*`.
+- [x] REST polling tap trung o `worker/odds-ingest.ts`; browser khong goi truc tiep Kalshi/FIFA.
+- [x] Hai endpoint hien tai khong can provider API key; service-role key van chi nam trong worker server-side.
 - [x] Co `POST /api/provider/webhook` duoc bao ve bang worker secret cho provider push/request ngan.
 - [x] Durable state nam trong Supabase; client Supabase Realtime co resubscribe/refetch va polling fallback.
-- [ ] Neu dung AMQP consumer can chay lien tuc, proof-of-concept tren Vercel truoc; neu lifecycle/latency khong dat thi deploy worker rieng.
+- [ ] Worker polling 2 giay can process chay lien tuc; khong dat trong Vercel Function co lifecycle ngan, can chot noi host worker truoc Production.
 - [x] Worker nam cung repository; Next.js/Vercel van la web app va API chinh.
 - [x] Moi update duoc validate, map dung market, ghi `odds_snapshots`, cap nhat oracle/match state atomic, sau do Realtime phat thay doi.
 - [x] Settlement khong tu dong dua vao odds; API admin bat buoc nhap nguon va tham chieu ket qua.
 
 ### 5.4. Chuan hoa odds
 
-- [x] Doi decimal odds thanh raw probability: `r_i = 1 / odds_i`.
-- [x] Bo bookmaker margin: `p_i = r_i / sum(r)` de tong xac suat cac cua bang `1`.
-- [x] Loai snapshot qua 30 giay va lay median fair probability tu cac bookmaker hop le.
-- [x] Luu odds goc, fair probability, provider/received timestamp, oracle version va ten cong thuc normalize trong raw payload.
+- [x] Moi contract Kalshi dung midpoint: `m_i = (yes_bid_i + yes_ask_i) / 2`.
+- [x] Chuan hoa hai contract: `p_i = m_i / sum(m)` de tong xac suat bang `1`.
+- [x] Tu choi ticker sai, market khong active, crossed book, spread qua 15% va timestamp sai.
+- [x] Luu bid/ask, Kalshi `updated_time`, FIFA status, provider/received timestamp, oracle version va cong thuc trong raw payload.
 - [x] Gioi han gia live `0.01-0.99`; chi settlement moi chuyen payout ve `1/0`.
 
 ## 6. Mo hinh du lieu
@@ -210,11 +212,12 @@ scheduled -> pre_match_open -> live_open -> ended -> settled
 - [x] VMM state, balance, position, trade va ledger cap nhat trong mot transaction atomic.
 - [x] Khong cho ban qua so shares dang co.
 - [x] Lenh in-play co acceptance delay 3 giay va kiem tra oracle/VMM version lan cuoi truoc commit.
-- [ ] Tu dong dung giao dich khi goal, VAR, penalty, the do, provider `bet stop`, score/odds lech nhau, feed stale, odds nhay bat thuong hoac tran ket thuc.
+- [x] Tu dong suspend khi FIFA score tang, loi/mat feed hoac payload khong hop le; tu dong ended khi FIFA tra ket qua chinh thuc.
+- [x] Sau goal, doi ca hai ticker Kalshi co `updated_time` moi, sau do moi bat dau xac nhan hai snapshot de resume.
 - [x] Khi suspended, giu last valid price chi de hien thi va khong nhan buy/sell.
 - [x] Chi mo lai sau hai oracle snapshot moi lien tiep; score regression bi tu choi va direct status resume bi chan.
 - [ ] Co primary/fallback feed; neu hai nguon lech qua nguong thi suspend va yeu cau admin kiem tra.
-- [x] Gioi han min/max order va max exposure moi UID tren tung market.
+- [x] Giu min order `10`; bo max order/max exposure theo yeu cau ngay 18/07.
 - [x] Settlement idempotent: chay lai khong tra thuong lan hai.
 - [x] Market void redeem outstanding shares o `0,5` va ghi ledger day du.
 - [x] Cong thuc oracle-anchored VMM/payout co trong domain/RPC va vi du bang diem trong tai lieu nay.
@@ -340,7 +343,8 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] pgTAP kiem tra transition live/suspended/ended va API hien thi timestamp theo `GMT+7`.
 - [x] pgTAP kiem tra settlement va void retry idempotent, moi loai chi co mot settlement/ledger redemption.
 - [x] pgTAP kiem tra leaderboard mark-to-market sau oracle update va payout sau settlement.
-- [ ] Feed stale/outlier/goal/VAR/bet-stop chuyen market sang suspended dung.
+- [x] Parser Kalshi/FIFA kiem tra ticker, bid/ask, team mapping va scheduled/live/ended dung.
+- [ ] Mat feed/goal that chuyen market sang suspended dung trong rehearsal Production.
 
 ### Integration test
 
@@ -370,7 +374,8 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Chot cac quyet dinh tai muc 2 theo bo mac dinh MVP ngay 17/07/2026.
 - [x] Chot live odds oracle + VMM cho MVP; chua lam CLOB day du.
 - [x] Chot Supabase Postgres + Realtime lam data platform.
-- [ ] Chon provider, xac nhan coverage dung hai tran va duyet chi phi/SLA.
+- [x] Chon Kalshi price + FIFA score va xac nhan mapping dung hai tran.
+- [ ] Duyet dieu khoan su dung, do tre va rui ro endpoint cong khai khong co SLA.
 - [ ] Duyet wireframe giao dien MEXC desktop/mobile.
 
 ### Milestone 1 - Nen tang
@@ -378,7 +383,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Scaffold Next.js, lint, TypeScript, Vitest/Playwright va env example.
 - [x] Cai dat Supabase local/CLI, migration va seed SQL cho hai market.
 - [x] Tao schema, generated database types va repository/service layer cho Supabase.
-- [x] Tao The Odds API adapter va admin replay mode de test khong ton quota live.
+- [x] Tao Kalshi/FIFA adapter va giu admin replay mode de test an toan.
 - [x] Viet domain/RPC logic oracle-VMM, ledger, position va settlement kem test.
 
 ### Milestone 2 - API va persistence
@@ -386,7 +391,8 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Lam UID session va cap diem mot lan.
 - [x] Lam market/quote/trade/portfolio/leaderboard API.
 - [x] Viet va test RPC transaction atomic cho trade/settlement/void.
-- [ ] Lam webhook/worker ingest odds + event, health check va primary/fallback.
+- [x] Lam worker ingest Kalshi price + FIFA score, validate va ghi oracle atomic.
+- [ ] Them health/alert cho worker va primary/fallback neu can.
 - [x] Bat RLS, policy/grants va Realtime publication toi thieu can thiet.
 - [x] Lam admin status/replay/preview/settle/void va audit log.
 
@@ -439,12 +445,12 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Da chot bo mac dinh MVP tai muc 2 de co the trien khai lien tuc; cac gia tri nay phai nam trong config/env, khong hard-code rai rac.
 - UID-only duoc giu theo yeu cau san pham, nhung khong du an toan neu BXH dung de trao thuong that. Can PIN/claim code hoac co che xac minh UID truoc production.
 - Chua co Supabase project URL/key va chua co live-odds provider credential. Source se gom migration, seed, local/replay provider va env example; ket noi production chi duoc danh dau hoan tat sau khi co credential va smoke test.
-- The Odds API chi phu hop prototype neu do tre score/odds khong dap ung in-play. Su kien co phan thuong nen uu tien feed push co `bet stop` va phai rehearsal tren mot tran live truoc ngay dien ra.
+- Ghi chu lich su: ngay 17/07 worker con dung The Odds API prototype; phuong an nay da duoc thay the ngay 18/07.
 - Logo SVG MEXC nguoi dung cung cap da duoc luu nguyen noi dung tai `public/brand/mexc-logo.svg` va dung tren user/admin shell.
 
 ### 17/07/2026 - MVP local da kiem thu
 
-- Next.js frontend/API, Supabase migrations/seed/RLS/RPC/Realtime, replay admin, The Odds API prototype worker va giao dien MEXC da co trong repository.
+- Next.js frontend/API, Supabase migrations/seed/RLS/RPC/Realtime, replay admin va giao dien MEXC da co trong repository; live worker duoc thay bang Kalshi/FIFA vao 18/07.
 - Local database reset thanh cong tu ba migration va `supabase/seed.sql`; `/api/health` tra `200`, database connected va dung hai market.
 - Ket qua verification moi nhat: ESLint pass, TypeScript pass, production build pass, `npm audit` co `0 vulnerabilities`, Vitest `6/6`, integration concurrency `1/1`, pgTAP `34/34`, Playwright `7/7` case muc tieu pass (`7` case khac skip co chu dich theo project/viewport).
 - Playwright da test buy + sell/cash-out, Realtime goal/suspend/hai-snapshot-resume, oracle-version/expired quote, UID/admin guard, settle/void preview, asset flags va overflow tai 375/768/1280/1440px.
@@ -453,3 +459,15 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - Chua danh dau Production: can tao Supabase Preview/Production, cau hinh Vercel env, apply migration, backup/restore, smoke test URL that va xac nhan persistence sau redeploy.
 - Chua du dieu kien live event: can provider final-winner nhi phan co SLA/bet-stop, primary/fallback, proof-of-coverage, auto suspend/reopen guard va rehearsal mot tran live.
 - Hang muc UX/ops mo rong con trong checklist: provider fallback deviation, reversal/adjustment workflow va full accessibility/contrast audit.
+
+### 18/07/2026 - Chuyen sang Kalshi price + FIFA score
+
+- Da bo The Odds API khoi live worker; khong can provider API key.
+- Da map Kalshi `FRA/ENG/ARG/ES` va FIFA match `400021542/400021543` trong seed + migration.
+- Worker poll FIFA truoc de phat hien goal/ended, sau do poll hai contract Kalshi, normalize bid/ask midpoint va ghi Supabase atomic.
+- Goal chi resume sau khi ca hai `updated_time` Kalshi moi va co hai snapshot xac nhan; khong ingest the, VAR hay event khac.
+- Da them unit test parser/mapping. Con bat buoc rehearsal latency va chot noi host process worker lien tuc truoc Production.
+- Heartbeat feed khong tao odds tick/khong tang `oracle_version`; history API nen snapshot trung va chart dung truc Y dong de hien bien dong nho.
+- Chart lay them Kalshi candlestick 1 gio trong 7 ngay, ghep hai ticker theo timestamp, ve hai line home/away va co range `24H/7D` nhu market chart.
+- UI hien dung Kalshi oracle PPM toi da 4 so thap phan, khong lam tron ve so nguyen va khong hien VMM inventory price thay cho oracle.
+- Bo gioi han mua `2.000`/exposure `5.000`; chi con min `10` va balance kha dung.

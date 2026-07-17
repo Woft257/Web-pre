@@ -647,6 +647,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      heartbeat_market_feed: {
+        Args: {
+          p_market_id: string
+          p_match_minute?: number
+          p_match_period?: string
+          p_provider: string
+          p_source_at: string
+        }
+        Returns: undefined
+      }
       mask_uid: { Args: { value: string }; Returns: string }
       place_trade: {
         Args: {
@@ -1073,4 +1083,3 @@ export const Constants = {
     },
   },
 } as const
-

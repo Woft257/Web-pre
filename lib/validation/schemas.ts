@@ -10,7 +10,7 @@ export const quoteRequestSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("buy"),
     side: z.enum(["home", "away"]),
-    amount: z.number().min(10).max(2_000),
+    amount: z.number().min(10),
   }),
   z.object({
     action: z.literal("sell"),

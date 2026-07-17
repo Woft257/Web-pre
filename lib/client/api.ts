@@ -30,7 +30,11 @@ export function formatPoints(value: number, maximumFractionDigits = 2) {
 }
 
 export function formatProbability(value: number) {
-  return `${Math.round(value * 100)}%`;
+  return `${new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 4,
+    minimumFractionDigits: 0,
+    useGrouping: false,
+  }).format(value * 100)}%`;
 }
 
 export function formatBangkokTime(value: string) {

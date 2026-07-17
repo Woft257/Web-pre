@@ -17,7 +17,9 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
-    "worker:odds": "tsx --env-file=.env.local worker/odds-ingest.ts"
+    "worker:live": "tsx --env-file=.env.local worker/odds-ingest.ts",
+    "worker:live:once": "tsx --env-file=.env.local worker/odds-ingest.ts --once",
+    "worker:odds": "npm run worker:live"
   },
   "engines": {
     "node": ">=22.0.0"

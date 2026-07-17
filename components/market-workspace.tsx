@@ -84,7 +84,7 @@ export function MarketWorkspace({
           <div className="outcome-price home-outcome">
             <span>{market.home.name}</span>
             <strong>{formatProbability(market.home.price)}</strong>
-            <small>Oracle {formatProbability(market.home.oracleProbability)}</small>
+            <small>Kalshi midpoint</small>
           </div>
           <div className="probability-track" aria-hidden="true">
             <span style={{ width: `${market.home.price * 100}%` }} />
@@ -92,16 +92,20 @@ export function MarketWorkspace({
           <div className="outcome-price away-outcome">
             <span>{market.away.name}</span>
             <strong>{formatProbability(market.away.price)}</strong>
-            <small>Oracle {formatProbability(market.away.oracleProbability)}</small>
+            <small>Kalshi midpoint</small>
           </div>
         </section>
 
         <section className="chart-section">
           <div className="subsection-title split-title">
-            <div><Activity size={18} /><h2>{market.home.code} probability</h2></div>
-            <span>{history.length || 1} ticks</span>
+            <div><Activity size={18} /><h2>Market probability</h2></div>
           </div>
-          <PriceChart history={history} homeProbability={market.home.oracleProbability} />
+          <PriceChart
+            history={history}
+            homeProbability={market.home.oracleProbability}
+            homeCode={market.home.code}
+            awayCode={market.away.code}
+          />
         </section>
 
         {position && (position.homeShares > 0 || position.awayShares > 0) && (

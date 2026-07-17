@@ -110,7 +110,7 @@ export function EventDashboard({
       if (selectedMarketId) runBackground(refreshMarketDetail(selectedMarketId));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [refreshMarketDetail, runBackground, selectedMarketId]);
+  }, [refreshMarketDetail, runBackground, selectedMarket?.oracleVersion, selectedMarketId]);
 
   useEffect(() => {
     const supabase = getBrowserClient();
@@ -121,7 +121,6 @@ export function EventDashboard({
         { event: "*", schema: "public", table: "markets" },
         () => {
           runBackground(refreshMarkets());
-          if (selectedMarketId) runBackground(refreshMarketDetail(selectedMarketId));
         },
       )
       .on(
@@ -140,7 +139,7 @@ export function EventDashboard({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [refreshLeaderboard, refreshMarketDetail, refreshMarkets, refreshMe, refreshPortfolio, runBackground, selectedMarketId, user]);
+  }, [refreshLeaderboard, refreshMarkets, refreshMe, refreshPortfolio, runBackground, user]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {

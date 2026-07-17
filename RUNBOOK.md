@@ -6,7 +6,9 @@
 
 - Vercel Production URL: `TBD`
 - Supabase Production project: `TBD`
-- Primary odds provider / support contact: `TBD`
+- Price source: Kalshi public REST market endpoints
+- Score source: FIFA live API (`400021542`, `400021543`)
+- Worker host/process monitor: `TBD`
 - Fallback provider / support contact: `TBD`
 - Nguoi co quyen settle/void: `TBD`
 - Kenh incident noi bo: `TBD`
@@ -17,8 +19,8 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 
 ### T-7 ngay
 
-- Xac nhan provider co dung market final-winner nhi phan, gom hiep phu/luan luu.
-- Chay proof-of-coverage tren tran tuong tu; do goal -> bet-stop -> odds moi va quota.
+- Xac nhan bon Kalshi ticker van active, co bid/ask hop le va dung rule winner.
+- Chay proof-of-coverage; do goal -> FIFA score -> Kalshi `updated_time` moi -> resume.
 - Apply migration vao Preview, test RLS/RPC/Realtime va backup/restore.
 - Chay `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run test:integration`, `npx supabase test db`, `npm run test:e2e`, `npm run build`.
 
@@ -37,8 +39,8 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 
 ## 3. Trong tran
 
-- Theo doi source timestamp, score, minute, oracle version, provider quota va API error rate.
-- Suspend ngay khi goal/VAR/penalty/red card/bet-stop, score regression, feed stale hoac primary/fallback lech qua nguong da duyet.
+- Theo doi Kalshi bid/ask + `updated_time`, FIFA score/status, oracle version va API error rate.
+- Worker suspend ngay khi score tang, score regression, payload sai hoac mot trong hai feed bi loi.
 - Khong resume bang status flag. Cho hai odds snapshot moi sau suspend va xac nhan score khong regression.
 - Neu provider outage: giu last valid price de xem, khong mo trading; ghi incident timestamp va provider ticket.
 - Neu Supabase/Vercel loi: suspend market khi he thong tro lai truoc khi cho giao dich tiep.

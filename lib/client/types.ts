@@ -28,8 +28,6 @@ export interface PublicMarket {
   oracleVersion: number;
   vmmVersion: number;
   minOrder: number;
-  maxOrder: number;
-  maxExposure: number;
   canTrade: boolean;
 }
 

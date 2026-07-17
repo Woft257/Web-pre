@@ -50,7 +50,7 @@ export function TradingPanel({
 
   const team = side === "home" ? market.home : market.away;
   const availableShares = side === "home" ? position?.homeShares ?? 0 : position?.awayShares ?? 0;
-  const maxBuy = Math.min(user.balance, market.maxOrder);
+  const maxBuy = user.balance;
 
   function resetDraft() {
     setQuote(null);

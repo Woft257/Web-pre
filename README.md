@@ -42,17 +42,18 @@ npm run build
 
 Integration va E2E test can Supabase local dang chay va `.env.local` hop le. `npm run test:integration` tao du lieu test trong local database; chay `npm run db:reset` de dua database ve seed ban dau.
 
-## Live odds
+## Live feed
 
-`ODDS_PROVIDER=replay` la che do phat trien mac dinh. Admin co the gui replay tick de test score, clock, status va Realtime ma khong ton quota.
-
-Worker prototype cho The Odds API:
+Gia lay tu bid/ask cua bon Kalshi contract; ty so va trang thai tran lay tu hai FIFA live endpoint. Worker khong doc the, VAR hay event khac va khong can provider API key.
 
 ```powershell
-npm run worker:odds
+npm run worker:live:once
+npm run worker:live
 ```
 
-Worker chi nhan market nhi phan final-winner; no se tu choi market bong da 1X2 co ba cua. Khong dung worker REST prototype cho su kien production cho den khi da xac nhan coverage, latency, bet-stop, quota va dieu khoan data.
+Lenh `worker:live:once` dung cho smoke test mot vong; `worker:live` poll mac dinh moi 2 giay. Khi FIFA score tang, market suspend cho den khi ca hai ticker Kalshi co update moi va hai snapshot xac nhan da duoc ghi. Khi FIFA tra trang thai chinh thuc ket thuc, market chuyen `ended` nhung van can admin xac nhan de settlement.
+
+Vercel Function khong phu hop cho process polling lien tuc. Web/API van deploy Vercel, con lenh worker trong cung repository phai chay tren mot process always-on. Truoc Production can rehearsal do tre va kiem tra dieu khoan su dung cua cac endpoint cong khai.
 
 ## Deploy
 

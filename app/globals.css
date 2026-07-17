@@ -705,15 +705,90 @@ h2 {
   font-size: 11px;
 }
 
+.market-chart-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chart-legend strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-legend-home {
+  color: var(--blue);
+}
+
+.chart-legend-away {
+  color: var(--red);
+}
+
+.chart-range {
+  display: grid;
+  grid-template-columns: repeat(2, 48px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.chart-range button {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--text-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chart-range button + button {
+  border-left: 1px solid var(--border);
+}
+
+.chart-range button.active {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
 .price-chart {
   position: relative;
-  height: 184px;
+  min-width: 0;
 }
 
 .price-chart svg {
   display: block;
   width: 100%;
-  height: 100%;
+  height: 220px;
 }
 
 .chart-grid-line {
@@ -723,16 +798,24 @@ h2 {
 
 .chart-line {
   fill: none;
-  stroke: var(--blue);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3;
+  stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
 
-.chart-line-shadow {
-  stroke: rgba(51, 120, 255, 0.2);
-  stroke-width: 10;
+.chart-line-home {
+  stroke: var(--blue);
+}
+
+.chart-line-away {
+  stroke: var(--red);
+}
+
+.chart-grid-label {
+  fill: var(--text-subtle);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-event-marker circle {
@@ -742,15 +825,47 @@ h2 {
   vector-effect: non-scaling-stroke;
 }
 
-.chart-axis {
-  position: absolute;
-  inset: 0 auto 0 0;
+.chart-endpoint {
+  stroke: var(--background);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-endpoint-home {
+  fill: var(--blue);
+}
+
+.chart-endpoint-away {
+  fill: var(--red);
+}
+
+.chart-end-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.chart-end-label-home {
+  fill: var(--blue);
+}
+
+.chart-end-label-away {
+  fill: var(--red);
+}
+
+.chart-time-axis {
   display: flex;
-  flex-direction: column-reverse;
   justify-content: space-between;
+  margin: 2px 76px 0 42px;
   color: var(--text-subtle);
   font-size: 9px;
-  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-point-count {
+  justify-self: end;
+  color: var(--text-subtle);
+  font-size: 10px;
 }
 
 .inline-position {
@@ -1618,8 +1733,17 @@ h2 {
     font-size: 23px;
   }
 
-  .price-chart {
-    height: 150px;
+  .chart-toolbar {
+    align-items: flex-start;
+  }
+
+  .chart-legend {
+    display: grid;
+    gap: 6px;
+  }
+
+  .price-chart svg {
+    height: 190px;
   }
 
   .data-table th,

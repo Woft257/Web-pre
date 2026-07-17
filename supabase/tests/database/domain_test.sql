@@ -1,6 +1,6 @@
 begin;
 
-select plan(34);
+select plan(38);
 
 select has_table('public', 'event_users', 'event_users table exists');
 select has_table('public', 'markets', 'markets table exists');
@@ -318,6 +318,44 @@ select throws_ok(
   'P0001',
   'SCORE_REGRESSION',
   'score regression is rejected'
+);
+
+create temp table heartbeat_context as
+select
+  oracle_version,
+  (select count(*) from public.odds_snapshots where market_id = m.id) as snapshot_count
+from public.markets m
+where id = (select market_id from test_context);
+
+select lives_ok(
+  $$
+    select public.heartbeat_market_feed(
+      (select market_id from test_context),
+      'replay',
+      now() + interval '6 seconds',
+      36::smallint,
+      'second_half'
+    )
+  $$,
+  'feed heartbeat updates freshness without a price tick'
+);
+
+select is(
+  (select oracle_version from public.markets where id = (select market_id from test_context)),
+  (select oracle_version from heartbeat_context),
+  'feed heartbeat does not invalidate the oracle version'
+);
+
+select is(
+  (select count(*) from public.odds_snapshots where market_id = (select market_id from test_context)),
+  (select snapshot_count from heartbeat_context),
+  'feed heartbeat does not create an odds snapshot'
+);
+
+select is(
+  (select match_minute from public.markets where id = (select market_id from test_context)),
+  36::smallint,
+  'feed heartbeat still updates the match clock'
 );
 
 select lives_ok(

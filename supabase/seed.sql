@@ -30,10 +30,10 @@ values
     '2026-07-18 21:00:00+00',
     '2026-07-19 00:00:00+00',
     'pre_match_open',
-    'replay',
-    'replay-fra-eng-2026',
-    500000,
-    500000,
+    'kalshi-fifa',
+    '{"kalshi":{"homeTicker":"KXWCADVANCE-26JUL18FRAENG-FRA","awayTicker":"KXWCADVANCE-26JUL18FRAENG-ENG"},"fifa":{"competitionId":"17","seasonId":"285023","stageId":"289291","matchId":"400021542"}}',
+    635000,
+    365000,
     now(),
     now()
   ),
@@ -49,10 +49,10 @@ values
     '2026-07-19 19:00:00+00',
     '2026-07-19 22:00:00+00',
     'pre_match_open',
-    'replay',
-    'replay-arg-esp-2026',
-    500000,
-    500000,
+    'kalshi-fifa',
+    '{"kalshi":{"homeTicker":"KXMENWORLDCUP-26-AR","awayTicker":"KXMENWORLDCUP-26-ES"},"fifa":{"competitionId":"17","seasonId":"285023","stageId":"289292","matchId":"400021543"}}',
+    413793,
+    586207,
     now(),
     now()
   )
@@ -66,4 +66,8 @@ on conflict (slug) do update set
   away_code = excluded.away_code,
   kickoff_at = excluded.kickoff_at,
   trading_end_at = excluded.trading_end_at,
+  provider = excluded.provider,
+  provider_event_id = excluded.provider_event_id,
+  oracle_home_probability_ppm = excluded.oracle_home_probability_ppm,
+  oracle_away_probability_ppm = excluded.oracle_away_probability_ppm,
   updated_at = now();

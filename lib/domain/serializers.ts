@@ -1,11 +1,11 @@
 import { microToPoints, MICRO_UNITS, PRICE_PPM } from "@/lib/domain/constants";
-import { marginalProbability, marketStateFromRow } from "@/lib/domain/pricing";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type MarketRow = Database["public"]["Tables"]["markets"]["Row"];
 
 export function serializeMarket(row: MarketRow) {
-  const state = marketStateFromRow(row);
+  const homeProbability = row.oracle_home_probability_ppm / PRICE_PPM;
+  const awayProbability = row.oracle_away_probability_ppm / PRICE_PPM;
   return {
     id: row.id,
     slug: row.slug,
@@ -16,15 +16,15 @@ export function serializeMarket(row: MarketRow) {
       name: row.home_name,
       code: row.home_code,
       score: row.home_score,
-      oracleProbability: row.oracle_home_probability_ppm / PRICE_PPM,
-      price: marginalProbability(state, "home"),
+      oracleProbability: homeProbability,
+      price: homeProbability,
     },
     away: {
       name: row.away_name,
       code: row.away_code,
       score: row.away_score,
-      oracleProbability: row.oracle_away_probability_ppm / PRICE_PPM,
-      price: marginalProbability(state, "away"),
+      oracleProbability: awayProbability,
+      price: awayProbability,
     },
     kickoffAt: row.kickoff_at,
     tradingEndAt: row.trading_end_at,
@@ -40,8 +40,6 @@ export function serializeMarket(row: MarketRow) {
     oracleVersion: row.oracle_version,
     vmmVersion: row.vmm_version,
     minOrder: microToPoints(row.min_order_micro),
-    maxOrder: microToPoints(row.max_order_micro),
-    maxExposure: microToPoints(row.max_user_exposure_micro),
     canTrade:
       ["pre_match_open", "live_open"].includes(row.status) && row.feed_status === "healthy",
   };

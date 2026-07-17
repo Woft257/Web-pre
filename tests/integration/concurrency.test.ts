@@ -42,7 +42,7 @@ describe("atomic trade concurrency", () => {
       p_market_id: market!.id,
       p_side: "home",
       p_action: "buy",
-      p_amount_micro: 100_000_000,
+      p_amount_micro: 6_000_000_000,
       p_quote_id: crypto.randomUUID(),
       p_idempotency_key: `concurrency-${suffix}-${crypto.randomUUID()}`,
       p_expected_oracle_version: market!.oracle_version,
@@ -60,7 +60,7 @@ describe("atomic trade concurrency", () => {
       supabase.from("event_users").select("balance_micro").eq("id", user!.id).single(),
       supabase.from("trades").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
     ]);
-    expect(refreshedUser?.balance_micro).toBe(9_900_000_000);
+    expect(refreshedUser?.balance_micro).toBe(4_000_000_000);
     expect(tradeCount).toBe(1);
   });
 });
