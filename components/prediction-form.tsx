@@ -129,7 +129,7 @@ export function PredictionSummary({ prediction }: { prediction: Prediction }) {
   return (
     <div className="prediction-summary">
       <div><span>Đội chiến thắng</span><strong>{prediction.winner === "argentina" ? "Argentina" : "Tây Ban Nha"}</strong></div>
-      <div><span>Tỉ số chính xác</span><strong>{prediction.argentinaScore} : {prediction.spainScore}</strong></div>
+      <div><span>Tỉ số chính xác</span><strong>ARG {prediction.argentinaScore} : {prediction.spainScore} ESP</strong></div>
       <div><span>Messi ghi bàn</span><strong>{prediction.messiScores ? "Có" : "Không"}</strong></div>
     </div>
   );

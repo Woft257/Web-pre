@@ -52,6 +52,10 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
   await expect(page.locator(".timeline-entry").filter({ hasText: "Messi ghi bànCó" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("masked-timeline.png"), fullPage: true });
 
+  await page.locator(".desktop-nav").getByRole("button", { name: "Dự đoán" }).click();
+  await expect(page.getByText("Tỉ số chính xác")).toBeVisible();
+  await expect(page.getByText("ARG 2 : 1 ESP", { exact: true })).toBeVisible();
+
   await page.reload();
   await expect(page.getByLabel("Mã tham gia")).toHaveCount(0);
   await page.getByTitle("Đăng xuất").click();
