@@ -13,6 +13,7 @@ export function RulesView() {
           <li>Dự đoán tỉ số chính xác của trận đấu.</li>
           <li>Dự đoán Messi có ghi bàn thắng trong trận hay không.</li>
         </ol>
+        <p><strong>Thông tin BD hỗ trợ:</strong> Người tham gia nhập tên BD đang hỗ trợ mình. Thông tin này chỉ dùng để phân loại dữ liệu nội bộ và không tính điểm.</p>
         <p><strong>Mỗi câu trả lời đúng là 10 điểm.</strong> Trường hợp có nhiều người cùng đưa ra câu trả lời đúng, phần thưởng sẽ ưu tiên cho người gửi dự đoán sớm nhất.</p>
       </div>
 

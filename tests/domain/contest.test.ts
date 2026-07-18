@@ -18,12 +18,14 @@ describe("contest serialization", () => {
       argentina_score: 1,
       spain_score: 2,
       messi_scores: false,
+      bd_name: "BD Lan",
       submitted_at: "2026-07-18T00:00:00.000Z",
     })).toEqual({
       winner: "spain",
       argentinaScore: 1,
       spainScore: 2,
       messiScores: false,
+      bdName: "BD Lan",
       submittedAt: "2026-07-18T00:00:00.000Z",
     });
   });

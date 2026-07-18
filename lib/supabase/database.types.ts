@@ -201,6 +201,7 @@ export type Database = {
       predictions: {
         Row: {
           argentina_score: number
+          bd_name: string
           id: string
           messi_scores: boolean
           spain_score: number
@@ -210,6 +211,7 @@ export type Database = {
         }
         Insert: {
           argentina_score: number
+          bd_name?: string
           id?: string
           messi_scores: boolean
           spain_score: number
@@ -219,6 +221,7 @@ export type Database = {
         }
         Update: {
           argentina_score?: number
+          bd_name?: string
           id?: string
           messi_scores?: boolean
           spain_score?: number
@@ -362,30 +365,58 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      submit_contest_prediction: {
-        Args: {
-          p_argentina_score: number
-          p_messi_scores: boolean
-          p_spain_score: number
-          p_user_id: string
-          p_winner: string
-        }
-        Returns: {
-          argentina_score: number
-          id: string
-          messi_scores: boolean
-          spain_score: number
-          submitted_at: string
-          user_id: string
-          winner: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "predictions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      submit_contest_prediction:
+        | {
+            Args: {
+              p_argentina_score: number
+              p_messi_scores: boolean
+              p_spain_score: number
+              p_user_id: string
+              p_winner: string
+            }
+            Returns: {
+              argentina_score: number
+              bd_name: string
+              id: string
+              messi_scores: boolean
+              spain_score: number
+              submitted_at: string
+              user_id: string
+              winner: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "predictions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_argentina_score: number
+              p_bd_name: string
+              p_messi_scores: boolean
+              p_spain_score: number
+              p_user_id: string
+              p_winner: string
+            }
+            Returns: {
+              argentina_score: number
+              bd_name: string
+              id: string
+              messi_scores: boolean
+              spain_score: number
+              submitted_at: string
+              user_id: string
+              winner: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "predictions"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
     }
     Enums: {
       [_ in never]: never

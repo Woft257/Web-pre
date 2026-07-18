@@ -11,14 +11,18 @@ export const accessRequestSchema = z.object({
     .transform((value) => value.toUpperCase()),
 }).strict();
 
-export const predictionRequestSchema = z.object({
+const scoredPredictionSchema = z.object({
   winner: z.enum(["argentina", "spain"]),
   argentinaScore: z.number().int().min(0).max(20),
   spainScore: z.number().int().min(0).max(20),
   messiScores: z.boolean(),
+});
+
+export const predictionRequestSchema = scoredPredictionSchema.extend({
+  bdName: z.string().trim().min(1, "BD name is required").max(100),
 }).strict();
 
-export const adminResultSchema = predictionRequestSchema;
+export const adminResultSchema = scoredPredictionSchema.strict();
 
 export const adminPredictionStatusSchema = z.object({
   open: z.boolean(),

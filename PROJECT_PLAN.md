@@ -18,6 +18,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Cau 1: doi chien thang Argentina/Tay Ban Nha.
 - [x] Cau 2: ti so chinh xac Argentina - Tay Ban Nha.
 - [x] Cau 3: Messi co ghi ban hay khong.
+- [x] Cau 4: ten BD dang ho tro, bat buoc nhap nhung khong tinh diem va khong hien tren timeline/BXH.
 - [x] Moi cau dung 10 diem, toi da 30 diem.
 - [x] Dong diem thi `submitted_at` som hon xep tren (FCFS), sau do dung prediction UUID lam tie-break deterministic.
 - [x] Form hien ro cach tinh diem va canh bao khong the sua sau khi gui.
@@ -30,6 +31,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] `predictions.user_id` unique: mot UID chi co mot prediction.
 - [x] DB trigger chan moi `UPDATE` va `DELETE` tren prediction.
 - [x] Timeline che UID va chi tra ve sau khi current user da submit.
+- [x] Timeline va leaderboard khong tra ve `bd_name`; du lieu nay chi phuc vu admin/CSV.
 - [x] RLS bat tren moi table; browser khong truy cap Supabase truc tiep, API server dung service role.
 - [x] Admin page khong co public link va bat buoc `ADMIN_SECRET`.
 - [x] CSP/security headers chi cho phep ket noi same-origin.
@@ -54,6 +56,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Nhap va publish doi thang, ti so, Messi ghi ban.
 - [x] Publish tu dong dong prediction va audit action.
 - [x] Xem full UID + prediction trong admin.
+- [x] Xem ten BD ho tro trong admin va xuat cot `bd_name` trong participants CSV.
 - [x] Tim UID day du/mot phan va server-side pagination bang participant, 20 dong/trang.
 - [x] Xoa tung participant kem prediction, revoke session va cap nhat lai claim counter cua ma.
 - [x] Danger zone reset participants/predictions/result/BXH/rate-limit/audit cu, giu invite codes va ghi audit reset moi.
@@ -66,6 +69,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Tao forward migration `20260718233000_admin_delete_and_reset.sql` de dua RPC delete/reset len Cloud da ghi nhan version `20260718220000` tu truoc.
 - [x] Migration `20260718234500_event_brand_and_deadline.sql` cap nhat ten su kien va deadline `2026-07-19 16:59:00Z`.
 - [x] Migration `20260718235500_event_name.sql` cap nhat ten su kien thanh `Ban linh vo dich`.
+- [x] Migration `20260719001000_prediction_bd_support.sql` luu ten BD noi bo va giu tuong thich prediction cu.
 - [x] Seed contest final va 5 reusable invite-code hash.
 - [x] Generated Supabase TypeScript types theo schema moi.
 - [x] Local reset thanh cong tu toan bo migration history.
@@ -73,6 +77,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Apply forward migration `20260718233000` tren Supabase Production.
 - [x] Apply va verify migration `20260718234500` tren Supabase Production; title/deadline remote dung gia tri mong doi.
 - [x] Apply va verify migration `20260718235500` tren Supabase Production; title remote la `Ban linh vo dich`.
+- [x] Apply va verify migration `20260719001000` tren Supabase Production; `bd_name` da backfill prediction cu.
 - [x] Remote PostgREST publish ca hai RPC; probe delete bang UUID khong ton tai da vao ham va tra `USER_NOT_FOUND` dung mong doi.
 - [ ] Smoke test destructive delete participant va reset event tren giao dien Vercel bang du lieu test.
 
@@ -81,7 +86,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] TypeScript va ESLint pass sau khi bo runtime cu.
 - [x] Unit test validation, masking, serialization, JWT.
 - [x] Integration test mot code dung cho nhieu UID va concurrent submit chi commit mot row.
-- [x] pgTAP 54 check: reusable code, access pair, immutable prediction, scoring, FCFS, publish, delete participant, reset va audit.
+- [x] pgTAP 57 check: reusable code, access pair, BD noi bo, immutable prediction, scoring, FCFS, publish, delete participant, reset va audit.
 - [x] Database lint khong co issue.
 - [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin invite-code/participant pagination, UID search, publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
 - [x] Production build va HTTP smoke test pass; `/api/health` tra `200`, schema sach co `0` participant/`0` prediction.

@@ -34,6 +34,7 @@ describe("reusable invite code and immutable submission", () => {
       p_argentina_score: 2,
       p_spain_score: 1,
       p_messi_scores: true,
+      p_bd_name: "BD Integration",
     });
     const submissions = await Promise.all([submit(), submit()]);
     expect(submissions.filter((result) => !result.error)).toHaveLength(1);

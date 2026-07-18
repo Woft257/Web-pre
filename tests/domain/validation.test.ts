@@ -26,18 +26,28 @@ describe("contest request validation", () => {
       argentinaScore: 2,
       spainScore: 1,
       messiScores: true,
+      bdName: "BD Lan",
     })).toMatchObject({ winner: "argentina", argentinaScore: 2 });
     expect(() => predictionRequestSchema.parse({
       winner: "france",
       argentinaScore: 2,
       spainScore: 1,
       messiScores: true,
+      bdName: "BD Lan",
     })).toThrow();
     expect(() => predictionRequestSchema.parse({
       winner: "spain",
       argentinaScore: 21,
       spainScore: 1,
       messiScores: false,
+      bdName: "BD Lan",
+    })).toThrow();
+    expect(() => predictionRequestSchema.parse({
+      winner: "spain",
+      argentinaScore: 1,
+      spainScore: 2,
+      messiScores: false,
+      bdName: "   ",
     })).toThrow();
   });
 

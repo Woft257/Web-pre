@@ -392,15 +392,16 @@ export function AdminConsole() {
           </form>
           <div className="admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>UID</th><th>Mã</th><th>Đội thắng</th><th>Tỉ số</th><th>Messi</th><th>Gửi lúc</th><th>Thao tác</th></tr></thead>
+              <thead><tr><th>UID</th><th>Mã</th><th>BD hỗ trợ</th><th>Đội thắng</th><th>Tỉ số</th><th>Messi</th><th>Gửi lúc</th><th>Thao tác</th></tr></thead>
               <tbody>
                 {data.participants.length === 0 && (
-                  <tr><td className="admin-table-empty" colSpan={7}>Không tìm thấy UID phù hợp</td></tr>
+                  <tr><td className="admin-table-empty" colSpan={8}>Không tìm thấy UID phù hợp</td></tr>
                 )}
                 {data.participants.map((participant) => (
                   <tr key={participant.id}>
                     <td><strong>{participant.uid}</strong></td>
                     <td>•••• {participant.codeHint}</td>
+                    <td>{participant.prediction?.bdName ?? "-"}</td>
                     <td>{participant.prediction ? (participant.prediction.winner === "argentina" ? "Argentina" : "Tây Ban Nha") : "Chưa gửi"}</td>
                     <td>{participant.prediction ? `${participant.prediction.argentinaScore} : ${participant.prediction.spainScore}` : "-"}</td>
                     <td>{participant.prediction ? (participant.prediction.messiScores ? "Có" : "Không") : "-"}</td>

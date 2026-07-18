@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       p_argentina_score: body.argentinaScore,
       p_spain_score: body.spainScore,
       p_messi_scores: body.messiScores,
+      p_bd_name: body.bdName,
     });
     if (error) throw error;
     return apiSuccess(serializePrediction(data), { status: 201 });

@@ -42,6 +42,7 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
   await page.getByLabel("Tỉ số Argentina").fill("2");
   await page.getByLabel("Tỉ số Tây Ban Nha").fill("1");
   await page.getByRole("button", { name: "Có", exact: true }).click();
+  await page.getByLabel("BD đang hỗ trợ bạn là ai?").fill("BD E2E Test");
   await page.getByLabel(/Tôi xác nhận/).check();
   await page.screenshot({ path: testInfo.outputPath("prediction-form.png"), fullPage: true });
   await page.getByRole("button", { name: "Gửi dự đoán" }).click();
@@ -50,11 +51,13 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
   await expect(page.locator(".timeline-entry").getByText(`${uid.slice(0, 2)}****${uid.slice(-2)}`)).toBeVisible();
   await expect(page.locator(".timeline-entry").filter({ hasText: "ARG 2 : 1 ESP" })).toBeVisible();
   await expect(page.locator(".timeline-entry").filter({ hasText: "Messi ghi bànCó" })).toBeVisible();
+  await expect(page.getByText("BD E2E Test")).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("masked-timeline.png"), fullPage: true });
 
   await page.locator(".desktop-nav").getByRole("button", { name: "Dự đoán" }).click();
   await expect(page.getByText("Tỉ số chính xác")).toBeVisible();
   await expect(page.getByText("ARG 2 : 1 ESP", { exact: true })).toBeVisible();
+  await expect(page.getByText("BD E2E Test")).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByLabel("Mã tham gia")).toHaveCount(0);
@@ -69,7 +72,7 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
   expect(reloginCookie).toBeDefined();
   const secondSubmission = await page.request.post("/api/predictions", {
     headers: { cookie: `mexc_uid_session=${reloginCookie?.value}` },
-    data: { winner: "spain", argentinaScore: 0, spainScore: 3, messiScores: false },
+    data: { winner: "spain", argentinaScore: 0, spainScore: 3, messiScores: false, bdName: "BD Khác" },
   });
   expect(secondSubmission.status()).toBe(409);
   expect((await secondSubmission.json()).error.code).toBe("PREDICTION_ALREADY_SUBMITTED");
@@ -103,6 +106,7 @@ test("timeline is paginated after twenty predictions", async ({ page }, testInfo
         argentinaScore: index % 4,
         spainScore: (index + 1) % 4,
         messiScores: index % 2 === 0,
+        bdName: `BD Timeline ${index}`,
       },
     });
     expect(prediction.ok()).toBeTruthy();
@@ -126,7 +130,7 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   const sessionCookie = await createApiSession(page.request, uid);
   const prediction = await page.request.post("/api/predictions", {
     headers: { cookie: sessionCookie },
-    data: { winner: "argentina", argentinaScore: 2, spainScore: 1, messiScores: true },
+    data: { winner: "argentina", argentinaScore: 2, spainScore: 1, messiScores: true, bdName: "BD Admin Test" },
   });
   const predictionResponse = await prediction.json();
   expect(prediction.ok(), JSON.stringify(predictionResponse)).toBeTruthy();
@@ -138,11 +142,16 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await expect(page.getByText("•••• B6FA").first()).toBeVisible();
 
   const participantRows = page.locator(".admin-table tbody tr");
-  await expect(page.getByText("23 kết quả", { exact: true })).toBeVisible();
-  await expect(participantRows).toHaveCount(20);
-  const participantPagination = page.getByRole("navigation", { name: "Phân trang người tham gia" });
-  await participantPagination.getByRole("button", { name: "2", exact: true }).click();
-  await expect(participantRows).toHaveCount(3);
+  const participantCountLabel = page.locator(".participant-toolbar > span");
+  const participantTotal = Number((await participantCountLabel.textContent())?.split(" ")[0]);
+  expect(participantTotal).toBeGreaterThan(0);
+  await expect(participantRows).toHaveCount(Math.min(20, participantTotal));
+  if (participantTotal > 20) {
+    const participantPagination = page.getByRole("navigation", { name: "Phân trang người tham gia" });
+    const lastPage = Math.ceil(participantTotal / 20);
+    await participantPagination.getByRole("button", { name: String(lastPage), exact: true }).click();
+    await expect(participantRows).toHaveCount(participantTotal - (lastPage - 1) * 20);
+  }
   await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
 
   await page.getByLabel("Tìm UID người tham gia").fill(uid);
@@ -150,9 +159,17 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await expect(page.getByText("1 kết quả", { exact: true })).toBeVisible();
   await expect(participantRows).toHaveCount(1);
   await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "BD Admin Test", exact: true })).toBeVisible();
+
+  const participantDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Người tham gia CSV" }).click();
+  const participantDownload = await participantDownloadPromise;
+  const participantCsv = await readFile(await participantDownload.path(), "utf8");
+  expect(participantCsv).toContain('"bd_name"');
+  expect(participantCsv).toContain('"BD Admin Test"');
   await page.getByRole("button", { name: "Xóa tìm kiếm UID" }).click();
-  await expect(page.getByText("23 kết quả", { exact: true })).toBeVisible();
-  await expect(participantRows).toHaveCount(20);
+  await expect(page.getByText(`${participantTotal} kết quả`, { exact: true })).toBeVisible();
+  await expect(participantRows).toHaveCount(Math.min(20, participantTotal));
 
   const visibleCodes = page.locator(".code-list > div");
   await expect(visibleCodes).toHaveCount(5);
@@ -183,6 +200,7 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await page.locator(".desktop-nav").getByRole("button", { name: "Bảng xếp hạng" }).click();
   await expect(page.getByRole("heading", { name: "Bảng xếp hạng" })).toBeVisible();
   await expect(page.getByText("30 điểm").first()).toBeVisible();
+  await expect(page.getByText("BD Admin Test")).toHaveCount(0);
 
   await page.goto("/admin");
   await page.getByLabel("ADMIN_SECRET").fill("local-admin-secret-change-me");

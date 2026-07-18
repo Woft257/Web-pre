@@ -35,6 +35,7 @@ export function serializePrediction(row: {
   argentina_score: number;
   spain_score: number;
   messi_scores: boolean;
+  bd_name: string;
   submitted_at: string;
 }): Prediction {
   return {
@@ -42,6 +43,7 @@ export function serializePrediction(row: {
     argentinaScore: row.argentina_score,
     spainScore: row.spain_score,
     messiScores: row.messi_scores,
+    bdName: row.bd_name,
     submittedAt: row.submitted_at,
   };
 }
@@ -66,8 +68,13 @@ export function serializeTimelineEntry(
   row: Parameters<typeof serializePrediction>[0] & { uid: string },
   index: number,
 ): TimelineEntry {
+  const prediction = serializePrediction(row);
   return {
-    ...serializePrediction(row),
+    winner: prediction.winner,
+    argentinaScore: prediction.argentinaScore,
+    spainScore: prediction.spainScore,
+    messiScores: prediction.messiScores,
+    submittedAt: prediction.submittedAt,
     order: index + 1,
     maskedUid: maskUid(row.uid),
   };

@@ -27,13 +27,14 @@ export async function GET(request: NextRequest) {
     const codeById = new Map(codes.map((code) => [code.id, code.code_hint]));
     const predictionByUser = new Map(predictions.map((prediction) => [prediction.user_id, prediction]));
     const rows = [
-      ["uid", "code_hint", "status", "winner", "argentina_score", "spain_score", "messi_scores", "submitted_at", "joined_at"],
+      ["uid", "code_hint", "status", "bd_name", "winner", "argentina_score", "spain_score", "messi_scores", "submitted_at", "joined_at"],
       ...users.map((user) => {
         const prediction = predictionByUser.get(user.id);
         return [
           user.uid,
           codeById.get(user.invite_code_id) ?? "",
           user.status,
+          prediction?.bd_name ?? "",
           prediction?.winner ?? "",
           prediction?.argentina_score ?? "",
           prediction?.spain_score ?? "",

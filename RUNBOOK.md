@@ -7,12 +7,13 @@
 - Cau hinh env tren Vercel va rotate cac secret da tung bi chia se.
 - Test hai UID cung dang ky duoc bang mot ma, nhung UID cu khong dang nhap duoc bang ma khac.
 - Xac nhan gio dong prediction la `19/07/2026 23:59 GMT+7`.
-- Test CSV participants va leaderboard.
+- Test participants CSV co cot `bd_name` va leaderboard CSV khong chua ten BD.
 
 ## Trong thoi gian nhan prediction
 
 - Theo doi `/api/health`, participant count va prediction count.
 - Timeline phai chi hien sau khi user da submit va UID luon o dang `12****78`.
+- Ten BD chi duoc hien trong admin/participants CSV, khong xuat hien tren timeline hoac BXH.
 - Timeline chia 10 luot/trang; kiem tra trang sau van giu dung so thu tu FCFS toan cuc.
 - Neu can dung som, vao `/admin` va bam `Dong du doan`.
 - Khong update/delete row trong `predictions`; database trigger se tu choi `PREDICTION_IMMUTABLE`.

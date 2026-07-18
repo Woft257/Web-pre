@@ -6,8 +6,8 @@ Next.js + Supabase app cho su kien BAN LINH VO DICH cua cong dong MEXC Viet Nam.
 
 1. Nhap ma moi dung chung va UID MEXC 8 chu so.
 2. Lan dau se gan UID voi ma da dung; lan sau dang nhap lai bang dung cap ma + UID.
-3. Tra loi mot lan ba cau hoi: doi thang, ti so Argentina - Tay Ban Nha va Messi co ghi ban hay khong.
-4. Sau khi gui, prediction bi khoa o ca API va database; timeline hien UID da che, thu tu FCFS va chia 10 luot moi trang.
+3. Tra loi mot lan ba cau hoi cham diem va nhap ten BD dang ho tro; ten BD chi dung de loc du lieu noi bo, khong tinh diem.
+4. Sau khi gui, prediction bi khoa o ca API va database; timeline chi hien ba cau cham diem, UID da che, thu tu FCFS va chia 10 luot moi trang.
 5. Bang xep hang chi hien sau khi admin cong bo ket qua. Moi cau dung duoc 10 diem; dong diem xep theo `submitted_at` som hon.
 
 Moi ma co the dung cho nhieu UID. Nam ma khoi tao chi duoc luu dang SHA-256 trong database; plaintext nam trong file local git-ignore `INVITE_CODES.local.md`.

@@ -22,10 +22,11 @@ export interface Prediction {
   argentinaScore: number;
   spainScore: number;
   messiScores: boolean;
+  bdName: string;
   submittedAt: string;
 }
 
-export interface TimelineEntry extends Prediction {
+export interface TimelineEntry extends Omit<Prediction, "bdName"> {
   order: number;
   maskedUid: string;
 }

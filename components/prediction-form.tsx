@@ -20,6 +20,7 @@ export function PredictionForm({
   const [argentinaScore, setArgentinaScore] = useState(0);
   const [spainScore, setSpainScore] = useState(0);
   const [messiScores, setMessiScores] = useState<boolean>(true);
+  const [bdName, setBdName] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,7 +33,7 @@ export function PredictionForm({
     try {
       const saved = await apiRequest<Prediction>("/api/predictions", {
         method: "POST",
-        body: JSON.stringify({ winner, argentinaScore, spainScore, messiScores }),
+        body: JSON.stringify({ winner, argentinaScore, spainScore, messiScores, bdName }),
       });
       onSubmitted(saved);
     } catch (requestError) {
@@ -106,9 +107,26 @@ export function PredictionForm({
         </div>
       </fieldset>
 
+      <fieldset disabled={!settings.acceptingPredictions || loading}>
+        <legend><span>04</span>BD đang hỗ trợ bạn là ai? <small>Không tính điểm</small></legend>
+        <label className="bd-support-field">
+          <span>Tên BD hỗ trợ</span>
+          <input
+            aria-label="BD đang hỗ trợ bạn là ai?"
+            value={bdName}
+            onChange={(event) => setBdName(event.target.value.slice(0, 100))}
+            minLength={1}
+            maxLength={100}
+            autoComplete="organization-title"
+            required
+          />
+          <small>Chỉ dùng để phân loại dữ liệu nội bộ, không hiển thị trên timeline hoặc bảng xếp hạng.</small>
+        </label>
+      </fieldset>
+
       <aside className="scoring-note">
         <strong>Cách tính điểm</strong>
-        <p>Mỗi câu trả lời đúng là 10 điểm. Trường hợp có nhiều người cùng đưa ra câu trả lời đúng, phần thưởng sẽ ưu tiên cho người gửi dự đoán sớm nhất.</p>
+        <p>Mỗi câu trả lời đúng trong 3 câu dự đoán là 10 điểm. Tên BD hỗ trợ không tính điểm. Trường hợp có nhiều người cùng đưa ra câu trả lời đúng, phần thưởng sẽ ưu tiên cho người gửi dự đoán sớm nhất.</p>
       </aside>
 
       <label className="confirm-row">
@@ -117,7 +135,7 @@ export function PredictionForm({
       </label>
 
       <div className="form-status" aria-live="polite">{error && <span className="form-error">{error}</span>}</div>
-      <button className="primary-button submit-prediction" type="submit" disabled={!settings.acceptingPredictions || !confirmed || loading}>
+      <button className="primary-button submit-prediction" type="submit" disabled={!settings.acceptingPredictions || !bdName.trim() || !confirmed || loading}>
         {loading ? <LoaderCircle className="spin" size={18} /> : settings.acceptingPredictions ? <Send size={18} /> : <LockKeyhole size={18} />}
         {settings.acceptingPredictions ? "Gửi dự đoán" : "Dự đoán đã đóng"}
       </button>

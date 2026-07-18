@@ -1,6 +1,6 @@
 begin;
 
-select plan(54);
+select plan(57);
 
 select has_table('public', 'contest_settings', 'contest settings table exists');
 select has_table('public', 'invite_codes', 'reusable invite codes table exists');
@@ -11,6 +11,7 @@ select has_table('public', 'rate_limit_buckets', 'rate limit table exists');
 select has_view('public', 'contest_leaderboard', 'leaderboard view exists');
 select has_column('public', 'invite_codes', 'claim_count', 'invite codes count participant claims');
 select has_column('public', 'event_users', 'auth_version', 'sessions retain an auth version');
+select has_column('public', 'predictions', 'bd_name', 'predictions retain the internal BD filter value');
 
 select is(public.consume_rate_limit('contest-test', 'key', 2, 60), true, 'first request is allowed');
 select is(public.consume_rate_limit('contest-test', 'key', 2, 60), true, 'request at limit is allowed');
@@ -78,10 +79,20 @@ select throws_ok(
   'an existing UID must use its original code'
 );
 
+select throws_ok(
+  $$ select public.submit_contest_prediction(
+    (select first_user_id from test_context),
+    'argentina', 2::smallint, 1::smallint, true, '   '
+  ) $$,
+  'P0001',
+  'INVALID_BD_NAME',
+  'a blank BD name is rejected'
+);
+
 select lives_ok(
   $$ select public.submit_contest_prediction(
     (select first_user_id from test_context),
-    'argentina', 2::smallint, 1::smallint, true
+    'argentina', 2::smallint, 1::smallint, true, 'BD Alpha'
   ) $$,
   'first participant submits a prediction'
 );
@@ -89,7 +100,7 @@ select lives_ok(
 select lives_ok(
   $$ select public.submit_contest_prediction(
     (select second_user_id from test_context),
-    'argentina', 2::smallint, 1::smallint, true
+    'argentina', 2::smallint, 1::smallint, true, 'BD Beta'
   ) $$,
   'second participant submits a prediction'
 );
@@ -103,10 +114,16 @@ select is(
   'one prediction exists per participant'
 );
 
+select is(
+  (select bd_name from public.predictions where user_id = (select first_user_id from test_context)),
+  'BD Alpha',
+  'the BD name is stored for internal filtering'
+);
+
 select throws_ok(
   $$ select public.submit_contest_prediction(
     (select first_user_id from test_context),
-    'spain', 0::smallint, 3::smallint, false
+    'spain', 0::smallint, 3::smallint, false, 'BD Other'
   ) $$,
   'P0001',
   'PREDICTION_ALREADY_SUBMITTED',
@@ -141,7 +158,7 @@ select lives_ok(
 select lives_ok(
   $$ select public.submit_contest_prediction(
     (select id from public.event_users where uid = '22223333'),
-    'spain', 1::smallint, 2::smallint, false
+    'spain', 1::smallint, 2::smallint, false, 'BD Delete Test'
   ) $$,
   'the delete-test participant can submit'
 );
