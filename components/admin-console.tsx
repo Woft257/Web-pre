@@ -11,7 +11,9 @@ import {
   LogOut,
   Plus,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
+  Trash2,
   Trophy,
   Users,
 } from "lucide-react";
@@ -31,6 +33,7 @@ export function AdminConsole() {
   const [spainScore, setSpainScore] = useState(0);
   const [messiScores, setMessiScores] = useState(true);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+  const [resetConfirmation, setResetConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -115,6 +118,35 @@ export function AdminConsole() {
     });
   }
 
+  async function deleteParticipant(participant: AdminContestData["participants"][number]) {
+    if (!window.confirm(`Xóa UID ${participant.uid} và dự đoán đã gửi?`)) return;
+    await runAction(async () => {
+      await apiRequest(`/api/admin/participants/${participant.id}`, {
+        method: "DELETE",
+        headers: headers(),
+      });
+      setMessage(`Đã xóa UID ${participant.uid}`);
+    });
+  }
+
+  async function resetContest() {
+    if (resetConfirmation !== "RESET") return;
+    if (!window.confirm("Xóa toàn bộ người tham gia, dự đoán, kết quả và bảng xếp hạng? Thao tác này không thể hoàn tác.")) return;
+    await runAction(async () => {
+      await apiRequest("/api/admin/contest/reset", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ confirmation: resetConfirmation }),
+      });
+      setResetConfirmation("");
+      setWinner("argentina");
+      setArgentinaScore(0);
+      setSpainScore(0);
+      setMessiScores(true);
+      setMessage("Đã reset dữ liệu sự kiện. Các mã tham gia vẫn được giữ lại.");
+    });
+  }
+
   async function exportCsv(path: string) {
     setLoading(true);
     setError("");
@@ -139,6 +171,7 @@ export function AdminConsole() {
     setSecret("");
     setData(null);
     setGeneratedCodes([]);
+    setResetConfirmation("");
     setMessage("");
     setError("");
   }
@@ -238,7 +271,7 @@ export function AdminConsole() {
           </div>
           <div className="admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>UID</th><th>Mã</th><th>Đội thắng</th><th>Tỉ số</th><th>Messi</th><th>Gửi lúc</th></tr></thead>
+              <thead><tr><th>UID</th><th>Mã</th><th>Đội thắng</th><th>Tỉ số</th><th>Messi</th><th>Gửi lúc</th><th>Thao tác</th></tr></thead>
               <tbody>
                 {data.participants.map((participant) => (
                   <tr key={participant.id}>
@@ -248,10 +281,43 @@ export function AdminConsole() {
                     <td>{participant.prediction ? `${participant.prediction.argentinaScore} : ${participant.prediction.spainScore}` : "-"}</td>
                     <td>{participant.prediction ? (participant.prediction.messiScores ? "Có" : "Không") : "-"}</td>
                     <td>{participant.prediction ? formatBangkokTime(participant.prediction.submittedAt) : "-"}</td>
+                    <td>
+                      <button
+                        className="icon-button delete-participant-button"
+                        type="button"
+                        title={`Xóa UID ${participant.uid}`}
+                        aria-label={`Xóa UID ${participant.uid}`}
+                        onClick={() => void deleteParticipant(participant)}
+                        disabled={loading}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="admin-danger-zone">
+          <div>
+            <p className="eyebrow">Danger zone</p>
+            <h2>Reset toàn bộ dữ liệu sự kiện</h2>
+            <p>Xóa người tham gia, dự đoán, kết quả, bảng xếp hạng và bộ đếm sử dụng. Danh sách mã tham gia vẫn được giữ lại.</p>
+          </div>
+          <div className="reset-controls">
+            <label htmlFor="reset-confirmation">Nhập RESET để xác nhận</label>
+            <input
+              id="reset-confirmation"
+              value={resetConfirmation}
+              onChange={(event) => setResetConfirmation(event.target.value.toUpperCase().slice(0, 5))}
+              placeholder="RESET"
+              autoComplete="off"
+            />
+            <button className="danger-button" type="button" onClick={() => void resetContest()} disabled={loading || resetConfirmation !== "RESET"}>
+              <RotateCcw size={17} /> Reset dữ liệu
+            </button>
           </div>
         </section>
       </main>

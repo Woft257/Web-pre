@@ -37,7 +37,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Access gate bat nhap ma truoc UID.
 - [x] Tab Du doan co ba control day du va confirmation checkbox.
 - [x] Sau submit hien summary khoa va tu chuyen Timeline.
-- [x] Timeline sap xep som den muon, hien masked UID, ba cau tra loi va timestamp GMT+7.
+- [x] Timeline sap xep som den muon, hien masked UID, ba cau tra loi va timestamp GMT+7; server-side pagination 20 luot/trang.
 - [x] Bang xep hang an den khi admin publish.
 - [x] Tab The le co day du noi dung, giai thuong, doi tuong va disclaimer nguoi dung cung cap.
 - [x] Mobile navigation va layout khong horizontal overflow.
@@ -51,6 +51,8 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Nhap va publish doi thang, ti so, Messi ghi ban.
 - [x] Publish tu dong dong prediction va audit action.
 - [x] Xem full UID + prediction trong admin.
+- [x] Xoa tung participant kem prediction, revoke session va cap nhat lai claim counter cua ma.
+- [x] Danger zone reset participants/predictions/result/BXH/rate-limit/audit cu, giu invite codes va ghi audit reset moi.
 - [x] Export participants CSV va leaderboard CSV.
 
 ## 6. Data va migration
@@ -69,9 +71,9 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] TypeScript va ESLint pass sau khi bo runtime cu.
 - [x] Unit test validation, masking, serialization, JWT.
 - [x] Integration test mot code dung cho nhieu UID va concurrent submit chi commit mot row.
-- [x] pgTAP 38 check: reusable code, access pair, immutable prediction, scoring, FCFS, publish/audit.
+- [x] pgTAP 54 check: reusable code, access pair, immutable prediction, scoring, FCFS, publish, delete participant, reset va audit.
 - [x] Database lint khong co issue.
-- [x] Playwright desktop/mobile: access, submit, timeline, relogin, API 404 cu, admin publish, CSV, leaderboard, rules, overflow (`4/4` workflow pass, `4` skip theo viewport).
+- [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
 - [x] Production build va HTTP smoke test pass; `/api/health` tra `200`, schema sach co `0` participant/`0` prediction.
 
 ## 8. Ghi chu van hanh

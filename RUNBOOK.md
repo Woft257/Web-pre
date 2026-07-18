@@ -13,8 +13,10 @@
 
 - Theo doi `/api/health`, participant count va prediction count.
 - Timeline phai chi hien sau khi user da submit va UID luon o dang `12****78`.
+- Timeline chia 20 luot/trang; kiem tra trang sau van giu dung so thu tu FCFS toan cuc.
 - Neu can dung som, vao `/admin` va bam `Dong du doan`.
 - Khong update/delete row trong `predictions`; database trigger se tu choi `PREDICTION_IMMUTABLE`.
+- Neu can loai mot UID, chi dung nut Delete participant trong admin de RPC xoa co audit va cap nhat claim counter.
 
 ## Cong bo ket qua
 
@@ -26,6 +28,12 @@
 6. Export participants CSV va leaderboard CSV.
 
 Admin co the cap nhat va cong bo lai neu ket qua nhap sai; moi lan publish deu co `admin_audit_logs`.
+
+## Reset su kien
+
+- Chi dung danger zone khi can xoa toan bo du lieu tham gia va chay lai su kien.
+- Nhap dung `RESET`, doc dialog confirmation va xac nhan.
+- Reset xoa participants, predictions, result/BXH, rate limits va audit cu; giu invite codes, dua claim counters ve 0 va ghi mot audit reset moi.
 
 ## Sau su kien
 

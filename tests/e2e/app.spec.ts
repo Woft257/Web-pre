@@ -12,6 +12,7 @@ function uidFor(workerIndex: number, offset = 0) {
 
 async function enterContest(page: import("@playwright/test").Page, uid: string, code = reusableCode) {
   await page.goto("/");
+  await expect(page.getByText("Một mã có thể được sử dụng cho nhiều UID được mời.")).toHaveCount(0);
   await page.getByLabel("Mã tham gia").fill(code);
   await page.getByLabel("UID MEXC").fill(uid);
   await page.getByRole("button", { name: "Tiếp tục" }).click();
@@ -73,6 +74,33 @@ test("access pair is enforced and retired market APIs no longer exist", async ({
   expect((await request.post("/api/provider/webhook", { data: {} })).status()).toBe(404);
 });
 
+test("timeline is paginated after twenty predictions", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chrome", "desktop timeline pagination workflow");
+
+  for (let index = 0; index < 20; index += 1) {
+    const uid = uidFor(testInfo.workerIndex, 10 + index);
+    const login = await page.request.post("/api/session", { data: { code: reusableCode, uid } });
+    expect(login.ok()).toBeTruthy();
+    const prediction = await page.request.post("/api/predictions", {
+      data: {
+        winner: index % 2 === 0 ? "argentina" : "spain",
+        argentinaScore: index % 4,
+        spainScore: (index + 1) % 4,
+        messiScores: index % 2 === 0,
+      },
+    });
+    expect(prediction.ok()).toBeTruthy();
+  }
+
+  await page.goto("/");
+  await page.locator(".desktop-nav").getByRole("button", { name: "Timeline" }).click();
+  await expect(page.getByText("21 lượt hợp lệ")).toBeVisible();
+  await expect(page.locator(".timeline-entry")).toHaveCount(20);
+  await page.locator(".pagination").getByRole("button", { name: "2", exact: true }).click();
+  await expect(page.locator(".timeline-order").getByText("#21", { exact: true })).toBeVisible();
+  await expect(page.locator(".timeline-entry")).toHaveCount(1);
+});
+
 test("admin publishes the official result and leaderboard", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop admin workflow");
   const uid = uidFor(testInfo.workerIndex, 2);
@@ -88,7 +116,7 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await page.getByRole("button", { name: "Mở quản trị" }).click();
   await expect(page.getByRole("heading", { name: "Quản trị sự kiện dự đoán" })).toBeVisible();
   await expect(page.getByText("•••• B6FA").first()).toBeVisible();
-  await expect(page.getByRole("cell", { name: uid })).toBeVisible();
+  await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
 
   await page.getByLabel("Argentina").fill("2");
   await page.getByLabel("Tây Ban Nha").fill("1");
@@ -108,6 +136,22 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await page.locator(".desktop-nav").getByRole("button", { name: "Bảng xếp hạng" }).click();
   await expect(page.getByRole("heading", { name: "Bảng xếp hạng" })).toBeVisible();
   await expect(page.getByText("30 điểm").first()).toBeVisible();
+
+  await page.goto("/admin");
+  await page.getByLabel("ADMIN_SECRET").fill("local-admin-secret-change-me");
+  await page.getByRole("button", { name: "Mở quản trị" }).click();
+  await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTitle(`Xóa UID ${uid}`).click();
+  await expect(page.getByRole("cell", { name: uid, exact: true })).toHaveCount(0);
+
+  await page.getByLabel("Nhập RESET để xác nhận").fill("RESET");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Reset dữ liệu" }).click();
+  await expect(page.getByText("Đã reset dữ liệu sự kiện. Các mã tham gia vẫn được giữ lại.")).toBeVisible();
+  const health = await (await page.request.get("/api/health")).json();
+  expect(health.data.participants).toBe(0);
+  expect(health.data.predictions).toBe(0);
 });
 
 test("mobile prediction and rules views do not overflow", async ({ page }, testInfo) => {

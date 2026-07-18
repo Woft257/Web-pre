@@ -310,6 +310,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_contest_participant: {
+        Args: { p_actor: string; p_user_id: string }
+        Returns: Json
+      }
       mask_uid: { Args: { value: string }; Returns: string }
       publish_contest_result: {
         Args: {
@@ -338,6 +342,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reset_contest_event: { Args: { p_actor: string }; Returns: Json }
       set_predictions_open: {
         Args: { p_actor: string; p_open: boolean }
         Returns: {

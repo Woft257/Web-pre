@@ -27,3 +27,7 @@ export const adminPredictionStatusSchema = z.object({
 export const adminGenerateCodesSchema = z.object({
   count: z.number().int().min(1).max(20).default(1),
 }).strict();
+
+export const adminResetContestSchema = z.object({
+  confirmation: z.literal("RESET"),
+}).strict();

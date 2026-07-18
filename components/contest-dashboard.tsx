@@ -51,6 +51,7 @@ export function ContestDashboard({
   const [activeTab, setActiveTab] = useState<Tab>("prediction");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [timelinePage, setTimelinePage] = useState(initialPrediction.timelinePagination.page);
   const userId = user?.id ?? null;
 
   const refresh = useCallback(async (showSpinner = false) => {
@@ -60,7 +61,7 @@ export function ContestDashboard({
       setContest(nextContest);
       if (userId) {
         const [nextPrediction, nextLeaderboard] = await Promise.all([
-          apiRequest<PredictionData>("/api/predictions"),
+          apiRequest<PredictionData>(`/api/predictions?page=${timelinePage}`),
           apiRequest<LeaderboardData>("/api/leaderboard"),
         ]);
         setPredictionData(nextPrediction);
@@ -74,7 +75,7 @@ export function ContestDashboard({
     } finally {
       if (showSpinner) setRefreshing(false);
     }
-  }, [userId]);
+  }, [timelinePage, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -96,7 +97,12 @@ export function ContestDashboard({
   async function signOut() {
     await apiRequest<{ signedOut: boolean }>("/api/session", { method: "DELETE" });
     setUser(null);
-    setPredictionData({ prediction: null, timeline: [] });
+    setPredictionData({
+      prediction: null,
+      timeline: [],
+      timelinePagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    });
+    setTimelinePage(1);
     setLeaderboard(emptyLeaderboard);
     setActiveTab("prediction");
     setMobileMenu(false);
@@ -105,6 +111,7 @@ export function ContestDashboard({
   async function predictionSubmitted(prediction: Prediction) {
     setPredictionData((current) => ({ ...current, prediction }));
     setUser((current) => current ? { ...current, hasPrediction: true, submittedAt: prediction.submittedAt } : null);
+    setTimelinePage(1);
     await refresh();
     setActiveTab("timeline");
   }
@@ -179,7 +186,14 @@ export function ContestDashboard({
 
       <main className="contest-main">
         {user && activeTab === "prediction" && <PredictionForm settings={contest.settings} prediction={predictionData.prediction} onSubmitted={(saved) => void predictionSubmitted(saved)} />}
-        {user && activeTab === "timeline" && <TimelineView entries={predictionData.timeline} user={user} />}
+        {user && activeTab === "timeline" && (
+          <TimelineView
+            entries={predictionData.timeline}
+            pagination={predictionData.timelinePagination}
+            user={user}
+            onPageChange={setTimelinePage}
+          />
+        )}
         {user && activeTab === "leaderboard" && <ContestLeaderboard data={leaderboard} />}
         {activeTab === "rules" && <RulesView />}
       </main>

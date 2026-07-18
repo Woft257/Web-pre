@@ -1,9 +1,19 @@
-import { Clock3, LockKeyhole } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, LockKeyhole } from "lucide-react";
 
 import { formatBangkokTime } from "@/lib/client/api";
-import type { CurrentUser, TimelineEntry } from "@/lib/client/types";
+import type { CurrentUser, TimelineEntry, TimelinePagination } from "@/lib/client/types";
 
-export function TimelineView({ entries, user }: { entries: TimelineEntry[]; user: CurrentUser }) {
+export function TimelineView({
+  entries,
+  pagination,
+  user,
+  onPageChange,
+}: {
+  entries: TimelineEntry[];
+  pagination: TimelinePagination;
+  user: CurrentUser;
+  onPageChange: (page: number) => void;
+}) {
   if (!user.hasPrediction) {
     return (
       <section className="empty-state">
@@ -14,11 +24,17 @@ export function TimelineView({ entries, user }: { entries: TimelineEntry[]; user
     );
   }
 
+  const firstPage = Math.max(1, Math.min(pagination.page - 2, pagination.totalPages - 4));
+  const pageNumbers = Array.from(
+    { length: Math.min(5, pagination.totalPages) },
+    (_, index) => firstPage + index,
+  );
+
   return (
     <section className="timeline-section">
       <div className="view-heading">
         <div><p className="eyebrow">FCFS Timeline</p><h2>Thứ tự gửi dự đoán</h2></div>
-        <span>{entries.length} lượt hợp lệ</span>
+        <span>{pagination.total} lượt hợp lệ</span>
       </div>
       <div className="timeline-list">
         {entries.map((entry) => {
@@ -38,6 +54,28 @@ export function TimelineView({ entries, user }: { entries: TimelineEntry[]; user
           );
         })}
       </div>
+
+      {pagination.totalPages > 1 && (
+        <nav className="pagination" aria-label="Phân trang timeline">
+          <button type="button" onClick={() => onPageChange(pagination.page - 1)} disabled={pagination.page <= 1} aria-label="Trang trước">
+            <ChevronLeft size={17} />
+          </button>
+          {pageNumbers.map((page) => (
+            <button
+              type="button"
+              className={page === pagination.page ? "active" : ""}
+              aria-current={page === pagination.page ? "page" : undefined}
+              onClick={() => onPageChange(page)}
+              key={page}
+            >
+              {page}
+            </button>
+          ))}
+          <button type="button" onClick={() => onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} aria-label="Trang sau">
+            <ChevronRight size={17} />
+          </button>
+        </nav>
+      )}
     </section>
   );
 }

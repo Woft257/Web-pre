@@ -20,8 +20,11 @@ describe("JWT user sessions", () => {
 
   it("rejects a modified token", async () => {
     const token = await signSessionToken("af5fce11-0344-44c2-87c7-5da9b78841ea", 1);
-    const lastCharacter = token.at(-1) === "a" ? "b" : "a";
+    const [header, payload, signature] = token.split(".");
+    const index = Math.floor(signature.length / 2);
+    const replacement = signature[index] === "a" ? "b" : "a";
+    const modifiedSignature = `${signature.slice(0, index)}${replacement}${signature.slice(index + 1)}`;
 
-    await expect(verifySessionToken(`${token.slice(0, -1)}${lastCharacter}`)).resolves.toBeNull();
+    await expect(verifySessionToken(`${header}.${payload}.${modifiedSignature}`)).resolves.toBeNull();
   });
 });

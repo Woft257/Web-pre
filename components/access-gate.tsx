@@ -81,7 +81,6 @@ export function AccessGate({ onAuthenticated }: { onAuthenticated: (user: Curren
             Tiếp tục
           </button>
         </form>
-        <p className="access-footnote">Một mã có thể được sử dụng cho nhiều UID được mời.</p>
       </section>
     </div>
   );

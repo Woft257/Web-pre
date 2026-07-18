@@ -1,6 +1,6 @@
 begin;
 
-select plan(38);
+select plan(54);
 
 select has_table('public', 'contest_settings', 'contest settings table exists');
 select has_table('public', 'invite_codes', 'reusable invite codes table exists');
@@ -132,6 +132,54 @@ select throws_ok(
 select is(public.mask_uid('12345678'), '12****78', 'timeline UID is masked');
 
 select lives_ok(
+  $$ select public.claim_contest_access(
+    '22223333',
+    '0d051a55300029d55f01cff5b616def26371af9803e3860e10aa025c68f3fda1'
+  ) $$,
+  'a third participant can be created for delete testing'
+);
+select lives_ok(
+  $$ select public.submit_contest_prediction(
+    (select id from public.event_users where uid = '22223333'),
+    'spain', 1::smallint, 2::smallint, false
+  ) $$,
+  'the delete-test participant can submit'
+);
+select lives_ok(
+  $$ select public.delete_contest_participant(
+    (select id from public.event_users where uid = '22223333'),
+    'test-admin'
+  ) $$,
+  'admin can delete a participant through the controlled RPC'
+);
+select is(
+  (select count(*)::integer from public.event_users where uid = '22223333'),
+  0,
+  'participant row is deleted'
+);
+select is(
+  (select count(*)::integer from public.predictions p
+    join public.event_users u on u.id = p.user_id where u.uid = '22223333'),
+  0,
+  'participant prediction is deleted'
+);
+select is(
+  (select claim_count from public.invite_codes where code_hint = '01BD'),
+  0,
+  'delete recalculates the invite claim count'
+);
+select is(
+  (select last_claimed_at from public.invite_codes where code_hint = '01BD'),
+  null::timestamptz,
+  'delete recalculates the invite last-claimed timestamp'
+);
+select is(
+  (select count(*)::integer from public.admin_audit_logs where action = 'delete_contest_participant'),
+  1,
+  'participant deletion is audited'
+);
+
+select lives_ok(
   $$ select public.publish_contest_result(
     'argentina', 2::smallint, 1::smallint, true, 'test-admin'
   ) $$,
@@ -186,6 +234,26 @@ select is(
   (select count(*)::integer from public.admin_audit_logs where action = 'publish_contest_result'),
   1,
   'result publication is audited'
+);
+
+select lives_ok(
+  $$ select public.reset_contest_event('test-admin') $$,
+  'admin can reset contest data through the controlled RPC'
+);
+select is((select count(*)::integer from public.event_users), 0, 'reset deletes all participants');
+select is((select count(*)::integer from public.predictions), 0, 'reset deletes all predictions');
+select is((select count(*)::integer from public.contest_results), 0, 'reset deletes the published result');
+select is((select count(*)::integer from public.invite_codes), 5, 'reset keeps all invite codes');
+select is((select sum(claim_count)::integer from public.invite_codes), 0, 'reset clears invite claim counters');
+select is(
+  (select predictions_open from public.contest_settings where id = true),
+  true,
+  'reset reopens predictions'
+);
+select is(
+  (select count(*)::integer from public.admin_audit_logs where action = 'reset_contest_event'),
+  1,
+  'reset leaves a fresh audit record'
 );
 
 select * from finish();

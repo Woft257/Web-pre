@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   accessRequestSchema,
   adminGenerateCodesSchema,
+  adminResetContestSchema,
   predictionRequestSchema,
 } from "@/lib/validation/schemas";
 
@@ -42,5 +43,10 @@ describe("contest request validation", () => {
   it("limits admin code generation batches", () => {
     expect(adminGenerateCodesSchema.parse({ count: 5 })).toEqual({ count: 5 });
     expect(() => adminGenerateCodesSchema.parse({ count: 21 })).toThrow();
+  });
+
+  it("requires an exact reset confirmation phrase", () => {
+    expect(adminResetContestSchema.parse({ confirmation: "RESET" })).toEqual({ confirmation: "RESET" });
+    expect(() => adminResetContestSchema.parse({ confirmation: "reset" })).toThrow();
   });
 });

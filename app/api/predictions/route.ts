@@ -10,13 +10,21 @@ import { predictionRequestSchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser();
     const prediction = await getUserPrediction(user.id);
+    const requestedPage = Number(request.nextUrl.searchParams.get("page") ?? "1");
+    const page = Number.isInteger(requestedPage) && requestedPage > 0
+      ? Math.min(requestedPage, 10_000)
+      : 1;
+    const timeline = prediction
+      ? await getTimeline(page)
+      : { entries: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } };
     return apiSuccess({
       prediction,
-      timeline: prediction ? await getTimeline() : [],
+      timeline: timeline.entries,
+      timelinePagination: timeline.pagination,
     });
   } catch (error) {
     return apiFailure(error);

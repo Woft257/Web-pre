@@ -30,6 +30,13 @@ export interface TimelineEntry extends Prediction {
   maskedUid: string;
 }
 
+export interface TimelinePagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface ContestResult {
   winner: TeamChoice;
   argentinaScore: number;
@@ -52,6 +59,7 @@ export interface ContestData {
 export interface PredictionData {
   prediction: Prediction | null;
   timeline: TimelineEntry[];
+  timelinePagination: TimelinePagination;
 }
 
 export interface LeaderboardEntry {

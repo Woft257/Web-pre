@@ -7,7 +7,7 @@ Next.js + Supabase app cho su kien du doan chung ket World Cup 2026 cua cong don
 1. Nhap ma moi dung chung va UID MEXC 8 chu so.
 2. Lan dau se gan UID voi ma da dung; lan sau dang nhap lai bang dung cap ma + UID.
 3. Tra loi mot lan ba cau hoi: doi thang, ti so Argentina - Tay Ban Nha va Messi co ghi ban hay khong.
-4. Sau khi gui, prediction bi khoa o ca API va database; timeline hien UID da che va thu tu FCFS.
+4. Sau khi gui, prediction bi khoa o ca API va database; timeline hien UID da che, thu tu FCFS va chia 20 luot moi trang.
 5. Bang xep hang chi hien sau khi admin cong bo ket qua. Moi cau dung duoc 10 diem; dong diem xep theo `submitted_at` som hon.
 
 Moi ma co the dung cho nhieu UID. Nam ma khoi tao chi duoc luu dang SHA-256 trong database; plaintext nam trong file local git-ignore `INVITE_CODES.local.md`.
@@ -22,6 +22,8 @@ npm run dev
 ```
 
 Mo `http://localhost:3000`. Trang admin khong co link tren public UI; truy cap truc tiep `http://localhost:3000/admin` va nhap `ADMIN_SECRET`.
+
+Admin co the xoa tung participant va prediction cua ho. Danger zone cho phep reset toan bo participants/predictions/result/BXH ve trang thai moi, nhung giu lai invite codes; nut reset chi bat sau khi nhap chinh xac `RESET`.
 
 ## Kiem thu
 
