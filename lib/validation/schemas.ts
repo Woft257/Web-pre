@@ -31,3 +31,8 @@ export const adminGenerateCodesSchema = z.object({
 export const adminResetContestSchema = z.object({
   confirmation: z.literal("RESET"),
 }).strict();
+
+export const adminParticipantQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
+  search: z.string().trim().max(8).regex(/^\d*$/, "UID search must contain digits only").default(""),
+});

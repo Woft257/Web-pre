@@ -6,28 +6,57 @@ import { apiFailure, apiSuccess } from "@/lib/http/api-response";
 import { enforceRateLimit, enforceSameOrigin } from "@/lib/http/rate-limit";
 import { getContestData } from "@/lib/repositories/queries";
 import { createAdminClient } from "@/lib/supabase/server";
-import { adminPredictionStatusSchema, adminResultSchema } from "@/lib/validation/schemas";
+import {
+  adminParticipantQuerySchema,
+  adminPredictionStatusSchema,
+  adminResultSchema,
+} from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
+const PARTICIPANTS_PER_PAGE = 20;
 
 export async function GET(request: NextRequest) {
   try {
     requireAdmin(request);
     await enforceRateLimit(request, "admin-contest-read", { limit: 60, windowSeconds: 60 });
+    const query = adminParticipantQuerySchema.parse({
+      page: request.nextUrl.searchParams.get("participantPage") ?? undefined,
+      search: request.nextUrl.searchParams.get("participantSearch") ?? undefined,
+    });
     const supabase = createAdminClient();
-    const [contest, codesResult, usersResult, predictionsResult, draftResult] = await Promise.all([
+    const participantCountQuery = query.search
+      ? supabase.from("event_users").select("id", { count: "exact", head: true }).ilike("uid", `%${query.search}%`)
+      : supabase.from("event_users").select("id", { count: "exact", head: true });
+    const [contest, codesResult, participantsCountResult, draftResult] = await Promise.all([
       getContestData(),
       supabase.from("invite_codes").select("*").order("created_at", { ascending: true }),
-      supabase.from("event_users").select("*").order("created_at", { ascending: true }),
-      supabase.from("predictions").select("*").order("submitted_at", { ascending: true }),
+      participantCountQuery,
       supabase.from("contest_results").select("*").eq("id", true).maybeSingle(),
     ]);
     if (codesResult.error) throw codesResult.error;
-    if (usersResult.error) throw usersResult.error;
-    if (predictionsResult.error) throw predictionsResult.error;
+    if (participantsCountResult.error) throw participantsCountResult.error;
     if (draftResult.error) throw draftResult.error;
 
-    const predictionByUser = new Map(predictionsResult.data.map((prediction) => [prediction.user_id, prediction]));
+    const participantTotal = participantsCountResult.count ?? 0;
+    const participantTotalPages = Math.max(1, Math.ceil(participantTotal / PARTICIPANTS_PER_PAGE));
+    const participantPage = Math.min(query.page, participantTotalPages);
+    const participantFrom = (participantPage - 1) * PARTICIPANTS_PER_PAGE;
+    const participantQuery = query.search
+      ? supabase.from("event_users").select("*").ilike("uid", `%${query.search}%`)
+      : supabase.from("event_users").select("*");
+    const usersResult = await participantQuery
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(participantFrom, participantFrom + PARTICIPANTS_PER_PAGE - 1);
+    if (usersResult.error) throw usersResult.error;
+
+    const userIds = usersResult.data.map((user) => user.id);
+    const predictionsResult = userIds.length > 0
+      ? await supabase.from("predictions").select("*").in("user_id", userIds)
+      : null;
+    if (predictionsResult?.error) throw predictionsResult.error;
+
+    const predictionByUser = new Map((predictionsResult?.data ?? []).map((prediction) => [prediction.user_id, prediction]));
     const codeById = new Map(codesResult.data.map((code) => [code.id, code]));
     return apiSuccess({
       ...contest,
@@ -58,6 +87,13 @@ export async function GET(request: NextRequest) {
           prediction: prediction ? serializePrediction(prediction) : null,
         };
       }),
+      participantPagination: {
+        page: participantPage,
+        pageSize: PARTICIPANTS_PER_PAGE,
+        total: participantTotal,
+        totalPages: participantTotalPages,
+        search: query.search,
+      },
     });
   } catch (error) {
     return apiFailure(error);

@@ -128,7 +128,23 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await page.getByRole("button", { name: "Mở quản trị" }).click();
   await expect(page.getByRole("heading", { name: "Quản trị sự kiện dự đoán" })).toBeVisible();
   await expect(page.getByText("•••• B6FA").first()).toBeVisible();
+
+  const participantRows = page.locator(".admin-table tbody tr");
+  await expect(page.getByText("23 kết quả", { exact: true })).toBeVisible();
+  await expect(participantRows).toHaveCount(20);
+  const participantPagination = page.getByRole("navigation", { name: "Phân trang người tham gia" });
+  await participantPagination.getByRole("button", { name: "2", exact: true }).click();
+  await expect(participantRows).toHaveCount(3);
   await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
+
+  await page.getByLabel("Tìm UID người tham gia").fill(uid);
+  await page.getByRole("button", { name: "Tìm UID", exact: true }).click();
+  await expect(page.getByText("1 kết quả", { exact: true })).toBeVisible();
+  await expect(participantRows).toHaveCount(1);
+  await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Xóa tìm kiếm UID" }).click();
+  await expect(page.getByText("23 kết quả", { exact: true })).toBeVisible();
+  await expect(participantRows).toHaveCount(20);
 
   const visibleCodes = page.locator(".code-list > div");
   await expect(visibleCodes).toHaveCount(5);
@@ -163,6 +179,8 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await page.goto("/admin");
   await page.getByLabel("ADMIN_SECRET").fill("local-admin-secret-change-me");
   await page.getByRole("button", { name: "Mở quản trị" }).click();
+  await page.getByLabel("Tìm UID người tham gia").fill(uid);
+  await page.getByRole("button", { name: "Tìm UID", exact: true }).click();
   await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTitle(`Xóa UID ${uid}`).click();

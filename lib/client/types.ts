@@ -95,8 +95,17 @@ export interface AdminParticipant {
   prediction: Prediction | null;
 }
 
+export interface AdminParticipantPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  search: string;
+}
+
 export interface AdminContestData extends ContestData {
   draftResult: (Omit<ContestResult, "publishedAt"> & { isPublished: boolean }) | null;
   inviteCodes: AdminInviteCode[];
   participants: AdminParticipant[];
+  participantPagination: AdminParticipantPagination;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   accessRequestSchema,
   adminGenerateCodesSchema,
+  adminParticipantQuerySchema,
   adminResetContestSchema,
   predictionRequestSchema,
 } from "@/lib/validation/schemas";
@@ -48,5 +49,14 @@ describe("contest request validation", () => {
   it("requires an exact reset confirmation phrase", () => {
     expect(adminResetContestSchema.parse({ confirmation: "RESET" })).toEqual({ confirmation: "RESET" });
     expect(() => adminResetContestSchema.parse({ confirmation: "reset" })).toThrow();
+  });
+
+  it("accepts paginated partial UID searches and rejects non-digits", () => {
+    expect(adminParticipantQuerySchema.parse({ page: "2", search: "1234" })).toEqual({
+      page: 2,
+      search: "1234",
+    });
+    expect(adminParticipantQuerySchema.parse({})).toEqual({ page: 1, search: "" });
+    expect(() => adminParticipantQuerySchema.parse({ page: "0", search: "12ab" })).toThrow();
   });
 });

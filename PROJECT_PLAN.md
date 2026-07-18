@@ -52,6 +52,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Nhap va publish doi thang, ti so, Messi ghi ban.
 - [x] Publish tu dong dong prediction va audit action.
 - [x] Xem full UID + prediction trong admin.
+- [x] Tim UID day du/mot phan va server-side pagination bang participant, 20 dong/trang.
 - [x] Xoa tung participant kem prediction, revoke session va cap nhat lai claim counter cua ma.
 - [x] Danger zone reset participants/predictions/result/BXH/rate-limit/audit cu, giu invite codes va ghi audit reset moi.
 - [x] Export participants CSV va leaderboard CSV.
@@ -76,7 +77,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Integration test mot code dung cho nhieu UID va concurrent submit chi commit mot row.
 - [x] pgTAP 54 check: reusable code, access pair, immutable prediction, scoring, FCFS, publish, delete participant, reset va audit.
 - [x] Database lint khong co issue.
-- [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin invite-code pagination/publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
+- [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin invite-code/participant pagination, UID search, publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
 - [x] Production build va HTTP smoke test pass; `/api/health` tra `200`, schema sach co `0` participant/`0` prediction.
 
 ## 8. Ghi chu van hanh

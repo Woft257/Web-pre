@@ -14,10 +14,12 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Search,
   ShieldAlert,
   Trash2,
   Trophy,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -38,6 +40,9 @@ export function AdminConsole() {
   const [messiScores, setMessiScores] = useState(true);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
   const [codePage, setCodePage] = useState(1);
+  const [participantPage, setParticipantPage] = useState(1);
+  const [participantSearch, setParticipantSearch] = useState("");
+  const [appliedParticipantSearch, setAppliedParticipantSearch] = useState("");
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -47,9 +52,18 @@ export function AdminConsole() {
     return { "x-admin-secret": secret };
   }
 
-  async function loadData(initializeResult = false) {
-    const next = await apiRequest<AdminContestData>("/api/admin/contest", { headers: headers() });
+  async function loadData(
+    initializeResult = false,
+    participantQuery?: { page?: number; search?: string },
+  ) {
+    const requestedPage = participantQuery?.page ?? participantPage;
+    const requestedSearch = participantQuery?.search ?? appliedParticipantSearch;
+    const query = new URLSearchParams({ participantPage: String(requestedPage) });
+    if (requestedSearch) query.set("participantSearch", requestedSearch);
+    const next = await apiRequest<AdminContestData>(`/api/admin/contest?${query}`, { headers: headers() });
     setData(next);
+    setParticipantPage(next.participantPagination.page);
+    setAppliedParticipantSearch(next.participantPagination.search);
     if (initializeResult && next.draftResult) {
       setWinner(next.draftResult.winner);
       setArgentinaScore(next.draftResult.argentinaScore);
@@ -64,7 +78,7 @@ export function AdminConsole() {
     setError("");
     try {
       await apiRequest<{ authorized: boolean }>("/api/admin/auth", { method: "POST", headers: headers() });
-      await loadData(true);
+      await loadData(true, { page: 1, search: "" });
       setAuthenticated(true);
     } catch (requestError) {
       setSecret("");
@@ -173,12 +187,38 @@ export function AdminConsole() {
     }
   }
 
+  async function updateParticipantView(page: number, search: string) {
+    setLoading(true);
+    setMessage("");
+    setError("");
+    try {
+      await loadData(false, { page, search });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải người tham gia");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function searchParticipants(event: FormEvent) {
+    event.preventDefault();
+    void updateParticipantView(1, participantSearch.trim());
+  }
+
+  function clearParticipantSearch() {
+    setParticipantSearch("");
+    void updateParticipantView(1, "");
+  }
+
   function lockConsole() {
     setAuthenticated(false);
     setSecret("");
     setData(null);
     setGeneratedCodes([]);
     setCodePage(1);
+    setParticipantPage(1);
+    setParticipantSearch("");
+    setAppliedParticipantSearch("");
     setResetConfirmation("");
     setMessage("");
     setError("");
@@ -205,7 +245,7 @@ export function AdminConsole() {
   }
 
   if (!data) return null;
-  const submittedCount = data.participants.filter((participant) => participant.prediction).length;
+  const submittedCount = data.stats.predictions;
   const codePageCount = Math.max(1, Math.ceil(data.inviteCodes.length / INVITE_CODES_PER_PAGE));
   const visibleCodePage = Math.min(codePage, codePageCount);
   const codePageStart = (visibleCodePage - 1) * INVITE_CODES_PER_PAGE;
@@ -214,6 +254,15 @@ export function AdminConsole() {
   const codePageNumbers = Array.from(
     { length: Math.min(5, codePageCount) },
     (_, index) => firstCodePage + index,
+  );
+  const participantPagination = data.participantPagination;
+  const firstParticipantPage = Math.max(
+    1,
+    Math.min(participantPagination.page - 2, participantPagination.totalPages - 4),
+  );
+  const participantPageNumbers = Array.from(
+    { length: Math.min(5, participantPagination.totalPages) },
+    (_, index) => firstParticipantPage + index,
   );
 
   return (
@@ -319,10 +368,35 @@ export function AdminConsole() {
               <button className="secondary-button" type="button" onClick={() => void exportCsv("/api/admin/leaderboard.csv")} disabled={!data.result}><Download size={16} /> BXH CSV</button>
             </div>
           </div>
+          <form className="participant-toolbar" role="search" onSubmit={searchParticipants}>
+            <div className="participant-search-field">
+              <Search size={16} />
+              <input
+                aria-label="Tìm UID người tham gia"
+                inputMode="numeric"
+                value={participantSearch}
+                onChange={(event) => setParticipantSearch(event.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="Nhập UID đầy đủ hoặc một phần"
+                autoComplete="off"
+              />
+            </div>
+            <button className="icon-button" type="submit" disabled={loading} aria-label="Tìm UID" title="Tìm UID">
+              {loading ? <LoaderCircle className="spin" size={17} /> : <Search size={17} />}
+            </button>
+            {(appliedParticipantSearch || participantSearch) && (
+              <button className="icon-button" type="button" onClick={clearParticipantSearch} disabled={loading} aria-label="Xóa tìm kiếm UID" title="Xóa tìm kiếm UID">
+                <X size={17} />
+              </button>
+            )}
+            <span>{participantPagination.total} kết quả</span>
+          </form>
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead><tr><th>UID</th><th>Mã</th><th>Đội thắng</th><th>Tỉ số</th><th>Messi</th><th>Gửi lúc</th><th>Thao tác</th></tr></thead>
               <tbody>
+                {data.participants.length === 0 && (
+                  <tr><td className="admin-table-empty" colSpan={7}>Không tìm thấy UID phù hợp</td></tr>
+                )}
                 {data.participants.map((participant) => (
                   <tr key={participant.id}>
                     <td><strong>{participant.uid}</strong></td>
@@ -348,6 +422,40 @@ export function AdminConsole() {
               </tbody>
             </table>
           </div>
+          {participantPagination.totalPages > 1 && (
+            <nav className="pagination participants-pagination" aria-label="Phân trang người tham gia">
+              <button
+                type="button"
+                onClick={() => void updateParticipantView(participantPagination.page - 1, appliedParticipantSearch)}
+                disabled={loading || participantPagination.page <= 1}
+                aria-label="Trang người tham gia trước"
+                title="Trang người tham gia trước"
+              >
+                <ChevronLeft size={17} />
+              </button>
+              {participantPageNumbers.map((page) => (
+                <button
+                  type="button"
+                  className={page === participantPagination.page ? "active" : ""}
+                  aria-current={page === participantPagination.page ? "page" : undefined}
+                  onClick={() => void updateParticipantView(page, appliedParticipantSearch)}
+                  disabled={loading}
+                  key={page}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => void updateParticipantView(participantPagination.page + 1, appliedParticipantSearch)}
+                disabled={loading || participantPagination.page >= participantPagination.totalPages}
+                aria-label="Trang người tham gia sau"
+                title="Trang người tham gia sau"
+              >
+                <ChevronRight size={17} />
+              </button>
+            </nav>
+          )}
         </section>
 
         <section className="admin-danger-zone">
