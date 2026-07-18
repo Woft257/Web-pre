@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
 
 const reusableCode = "MEXC26-0AD8949CB6FA";
 const secondCode = "MEXC26-2D9F07264C4A";
@@ -18,6 +18,14 @@ async function enterContest(page: import("@playwright/test").Page, uid: string, 
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await expect(page.getByRole("heading", { name: "Tham gia dự đoán" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Chung kết World Cup 2026", exact: true })).toBeVisible();
+}
+
+async function createApiSession(request: APIRequestContext, uid: string, code = reusableCode) {
+  const response = await request.post("/api/session", { data: { code, uid } });
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const sessionCookie = response.headers()["set-cookie"]?.split(";", 1)[0];
+  expect(sessionCookie).toContain("mexc_uid_session=");
+  return sessionCookie as string;
 }
 
 test("participant submits once, sees the masked FCFS timeline, and can sign back in", async ({ page }, testInfo) => {
@@ -52,7 +60,10 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await expect(page.getByRole("heading", { name: "Thứ tự gửi dự đoán" })).toBeVisible();
 
+  const reloginCookie = (await page.context().cookies()).find((cookie) => cookie.name === "mexc_uid_session");
+  expect(reloginCookie).toBeDefined();
   const secondSubmission = await page.request.post("/api/predictions", {
+    headers: { cookie: `mexc_uid_session=${reloginCookie?.value}` },
     data: { winner: "spain", argentinaScore: 0, spainScore: 3, messiScores: false },
   });
   expect(secondSubmission.status()).toBe(409);
@@ -79,9 +90,9 @@ test("timeline is paginated after twenty predictions", async ({ page }, testInfo
 
   for (let index = 0; index < 20; index += 1) {
     const uid = uidFor(testInfo.workerIndex, 10 + index);
-    const login = await page.request.post("/api/session", { data: { code: reusableCode, uid } });
-    expect(login.ok()).toBeTruthy();
+    const sessionCookie = await createApiSession(page.request, uid);
     const prediction = await page.request.post("/api/predictions", {
+      headers: { cookie: sessionCookie },
       data: {
         winner: index % 2 === 0 ? "argentina" : "spain",
         argentinaScore: index % 4,
@@ -104,12 +115,13 @@ test("timeline is paginated after twenty predictions", async ({ page }, testInfo
 test("admin publishes the official result and leaderboard", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chrome", "desktop admin workflow");
   const uid = uidFor(testInfo.workerIndex, 2);
-  const login = await page.request.post("/api/session", { data: { code: reusableCode, uid } });
-  expect(login.ok()).toBeTruthy();
+  const sessionCookie = await createApiSession(page.request, uid);
   const prediction = await page.request.post("/api/predictions", {
+    headers: { cookie: sessionCookie },
     data: { winner: "argentina", argentinaScore: 2, spainScore: 1, messiScores: true },
   });
-  expect(prediction.ok()).toBeTruthy();
+  const predictionResponse = await prediction.json();
+  expect(prediction.ok(), JSON.stringify(predictionResponse)).toBeTruthy();
 
   await page.goto("/admin");
   await page.getByLabel("ADMIN_SECRET").fill("local-admin-secret-change-me");
@@ -117,6 +129,17 @@ test("admin publishes the official result and leaderboard", async ({ page }, tes
   await expect(page.getByRole("heading", { name: "Quản trị sự kiện dự đoán" })).toBeVisible();
   await expect(page.getByText("•••• B6FA").first()).toBeVisible();
   await expect(page.getByRole("cell", { name: uid, exact: true })).toBeVisible();
+
+  const visibleCodes = page.locator(".code-list > div");
+  await expect(visibleCodes).toHaveCount(5);
+  await page.getByTitle("Tạo mã mới").click();
+  await expect(page.getByText("Đã tạo mã mới. Hãy lưu mã ngay vì hệ thống chỉ lưu bản hash.")).toBeVisible();
+  const codePagination = page.getByRole("navigation", { name: "Phân trang mã tham gia" });
+  await expect(codePagination).toBeVisible();
+  await expect(codePagination.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(visibleCodes).toHaveCount(1);
+  await codePagination.getByRole("button", { name: "1", exact: true }).click();
+  await expect(visibleCodes).toHaveCount(5);
 
   await page.getByLabel("Argentina").fill("2");
   await page.getByLabel("Tây Ban Nha").fill("1");

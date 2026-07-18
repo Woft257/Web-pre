@@ -46,6 +46,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 
 - [x] Xem participant/prediction/code counts.
 - [x] Xem code hint, so UID da claim va lan dung gan nhat.
+- [x] Phan trang danh sach ma tham gia dung chung, moi trang 5 ma.
 - [x] Tao them reusable code; plaintext chi hien mot lan.
 - [x] Dong/mo prediction (khong mo lai duoc sau khi result da publish).
 - [x] Nhap va publish doi thang, ti so, Messi ghi ban.
@@ -59,12 +60,14 @@ Cap nhat: 18/07/2026 (GMT+7)
 
 - [x] Migration `20260718220000_prediction_contest_rebuild.sql` thay toan bo public schema market cu.
 - [x] Giu nguyen noi dung/version `20260718200000` vi Cloud da apply; khong repair/revert migration history remote.
+- [x] Tao forward migration `20260718233000_admin_delete_and_reset.sql` de dua RPC delete/reset len Cloud da ghi nhan version `20260718220000` tu truoc.
 - [x] Seed contest final va 5 reusable invite-code hash.
 - [x] Generated Supabase TypeScript types theo schema moi.
 - [x] Local reset thanh cong tu toan bo migration history.
-- [ ] Backup va apply migration tren Supabase Production.
-- [ ] Redeploy Vercel voi env moi, da bo odds/worker variables.
-- [ ] Smoke test tren URL Production.
+- [x] Migration contest `20260718220000` da co tren Supabase Production.
+- [x] Apply forward migration `20260718233000` tren Supabase Production.
+- [x] Remote PostgREST publish ca hai RPC; probe delete bang UUID khong ton tai da vao ham va tra `USER_NOT_FOUND` dung mong doi.
+- [ ] Smoke test destructive delete participant va reset event tren giao dien Vercel bang du lieu test.
 
 ## 7. Kiem thu
 
@@ -73,7 +76,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Integration test mot code dung cho nhieu UID va concurrent submit chi commit mot row.
 - [x] pgTAP 54 check: reusable code, access pair, immutable prediction, scoring, FCFS, publish, delete participant, reset va audit.
 - [x] Database lint khong co issue.
-- [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
+- [x] Playwright desktop/mobile: access, submit, timeline pagination, relogin, API 404 cu, admin invite-code pagination/publish/delete/reset, CSV, leaderboard, rules, overflow (`5/5` workflow pass, `5` skip theo viewport).
 - [x] Production build va HTTP smoke test pass; `/api/health` tra `200`, schema sach co `0` participant/`0` prediction.
 
 ## 8. Ghi chu van hanh
@@ -83,4 +86,5 @@ Cap nhat: 18/07/2026 (GMT+7)
 - Prediction dong theo `submission_closes_at` hoac nut admin, tuy dieu kien nao den truoc.
 - Admin co the publish lai ket qua neu nhap sai; prediction goc van bat bien va moi publish co audit log.
 - Migration Production la thay doi destructive co chu dich voi schema market cu; bat buoc backup truoc khi push.
-- Cloud dry-run ngay 18/07/2026 thanh cong va chi liet ke `20260718220000_prediction_contest_rebuild.sql`; chua push migration that.
+- Cloud da ghi nhan `20260718220000` truoc khi RPC delete/reset duoc them vao file local; Supabase khong chay lai migration cung version. Phai dung forward migration `20260718233000`, khong repair migration history remote.
+- Forward migration `20260718233000` da push production ngay 18/07/2026; Vercel khong can redeploy vi API route da co san va chi thieu RPC database.

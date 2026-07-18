@@ -3,6 +3,8 @@
 import {
   ArrowLeft,
   Check,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCopy,
   Download,
   KeyRound,
@@ -24,6 +26,8 @@ import { MexcLogo } from "@/components/mexc-logo";
 import { apiRequest, formatBangkokTime } from "@/lib/client/api";
 import type { AdminContestData, TeamChoice } from "@/lib/client/types";
 
+const INVITE_CODES_PER_PAGE = 5;
+
 export function AdminConsole() {
   const [secret, setSecret] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
@@ -33,6 +37,7 @@ export function AdminConsole() {
   const [spainScore, setSpainScore] = useState(0);
   const [messiScores, setMessiScores] = useState(true);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+  const [codePage, setCodePage] = useState(1);
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -114,6 +119,8 @@ export function AdminConsole() {
         body: JSON.stringify({ count: 1 }),
       });
       setGeneratedCodes((current) => [...result.codes, ...current]);
+      const nextCodeCount = (data?.inviteCodes.length ?? 0) + result.codes.length;
+      setCodePage(Math.max(1, Math.ceil(nextCodeCount / INVITE_CODES_PER_PAGE)));
       setMessage("Đã tạo mã mới. Hãy lưu mã ngay vì hệ thống chỉ lưu bản hash.");
     });
   }
@@ -171,6 +178,7 @@ export function AdminConsole() {
     setSecret("");
     setData(null);
     setGeneratedCodes([]);
+    setCodePage(1);
     setResetConfirmation("");
     setMessage("");
     setError("");
@@ -198,6 +206,15 @@ export function AdminConsole() {
 
   if (!data) return null;
   const submittedCount = data.participants.filter((participant) => participant.prediction).length;
+  const codePageCount = Math.max(1, Math.ceil(data.inviteCodes.length / INVITE_CODES_PER_PAGE));
+  const visibleCodePage = Math.min(codePage, codePageCount);
+  const codePageStart = (visibleCodePage - 1) * INVITE_CODES_PER_PAGE;
+  const visibleInviteCodes = data.inviteCodes.slice(codePageStart, codePageStart + INVITE_CODES_PER_PAGE);
+  const firstCodePage = Math.max(1, Math.min(visibleCodePage - 2, codePageCount - 4));
+  const codePageNumbers = Array.from(
+    { length: Math.min(5, codePageCount) },
+    (_, index) => firstCodePage + index,
+  );
 
   return (
     <div className="admin-shell">
@@ -254,10 +271,43 @@ export function AdminConsole() {
               <div className="generated-code" key={code}><code>{code}</code><button type="button" onClick={() => void navigator.clipboard.writeText(code)} title="Sao chép"><ClipboardCopy size={16} /></button></div>
             ))}
             <div className="code-list">
-              {data.inviteCodes.map((code) => (
+              {visibleInviteCodes.map((code) => (
                 <div key={code.id}><span>•••• {code.codeHint}</span><strong>{code.claimCount} UID</strong><small>{code.lastClaimedAt ? `Dùng gần nhất ${formatBangkokTime(code.lastClaimedAt)}` : "Chưa sử dụng"}</small></div>
               ))}
             </div>
+            {codePageCount > 1 && (
+              <nav className="pagination code-pagination" aria-label="Phân trang mã tham gia">
+                <button
+                  type="button"
+                  onClick={() => setCodePage(visibleCodePage - 1)}
+                  disabled={visibleCodePage <= 1}
+                  aria-label="Trang mã trước"
+                  title="Trang mã trước"
+                >
+                  <ChevronLeft size={17} />
+                </button>
+                {codePageNumbers.map((page) => (
+                  <button
+                    type="button"
+                    className={page === visibleCodePage ? "active" : ""}
+                    aria-current={page === visibleCodePage ? "page" : undefined}
+                    onClick={() => setCodePage(page)}
+                    key={page}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCodePage(visibleCodePage + 1)}
+                  disabled={visibleCodePage >= codePageCount}
+                  aria-label="Trang mã sau"
+                  title="Trang mã sau"
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </nav>
+            )}
           </section>
         </div>
 
