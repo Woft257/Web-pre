@@ -30,13 +30,13 @@ export function RulesView() {
 
       <div className="rules-band">
         <div className="rules-band-title"><LockKeyhole size={21} /><h3>Đối tượng tham gia</h3></div>
-        <p>Chương trình chỉ áp dụng độc quyền cho người dùng tại Việt Nam và cộng đồng KOL được mời tham gia.</p>
+        <p>Sự kiện chỉ áp dụng độc quyền cho người dùng và cộng đồng KOL được mời tham gia.</p>
       </div>
 
       <div className="rules-band disclaimer-band">
         <div className="rules-band-title"><AlertTriangle size={21} /><h3>Disclaimer</h3></div>
-        <p>Chỉ những người dùng đăng ký dưới link mời của đối tác đại lý MEXC Việt Nam mới đủ điều kiện nhận thưởng.</p>
-        <p>Sự kiện sẽ <strong>chi trả phần thưởng dưới dạng vật lý</strong> trích từ ngân sách token được phân bổ cho sự kiện. Không thể quy đổi từ hiện vật sang USDT.</p>
+        <p>Chỉ những người dùng đăng ký dưới link mời của đối tác đại lý mới đủ điều kiện nhận thưởng.</p>
+        <p>Sự kiện sẽ <strong>chi trả phần thưởng dưới hình thức hiện vật.</strong> Không thể quy đổi từ hiện vật sang USDT.</p>
         <p>Phần thưởng sẽ được <strong>phân bổ theo từng lượt tham gia hợp lệ, đúng, và nhanh nhất (FCFS).</strong></p>
         <p>Tất cả phần thưởng sẽ được phân bổ trong vòng 10 ngày làm việc sau khi sự kiện kết thúc.</p>
         <p>Nghiêm cấm thực hiện bất kỳ hành vi vi phạm nào ảnh hưởng đến sự cạnh tranh công bằng giữa những người dùng trong sự kiện, bao gồm nhưng không giới hạn ở việc giả mạo khối lượng giao dịch, đăng ký tài khoản số lượng lớn bất hợp pháp, tự giao dịch hoặc thao túng thị trường. Nếu bị phát hiện, người dùng có liên quan sẽ bị loại khỏi sự kiện.</p>
