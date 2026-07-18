@@ -20,7 +20,7 @@ export function RulesView() {
         <div className="rules-band-title"><Gift size={21} /><h3>Tổng giá trị giải thưởng: 2,000 USDT</h3></div>
         <div className="prize-grid">
           <div><span>Top 1</span><strong>Louis Vuitton Imagination EDP</strong></div>
-          <div><span>Top 2</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
+          <div><span>Top 2</span><strong>Montblanc - Ví đựng thẻ Sartorial</strong></div>
           <div><span>Top 3</span><strong>Cúp vô địch WC bằng Lego</strong></div>
           <div><span>Top 4-10</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
           <div><span>10 Lucky Draw</span><strong>Bình nước Stanley phiên bản World Cup</strong></div>

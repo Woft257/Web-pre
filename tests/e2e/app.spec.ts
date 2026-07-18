@@ -211,6 +211,7 @@ test("mobile prediction and rules views do not overflow", async ({ page }, testI
   await page.locator(".mobile-tab-bar").getByRole("button", { name: "Thể lệ & lưu ý" }).click();
   await expect(page.getByRole("heading", { name: "Thể lệ & lưu ý", exact: true }).first()).toBeVisible();
   await expect(page.getByText("Tổng giá trị giải thưởng: 2,000 USDT")).toBeVisible();
+  await expect(page.getByText("Montblanc - Ví đựng thẻ Sartorial")).toBeVisible();
   await expect(page.getByText("Bình nước Stanley phiên bản World Cup")).toBeVisible();
   await expect(page.getByText("Sự kiện chỉ dành cho người dùng Việt Nam.")).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
