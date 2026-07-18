@@ -1,6 +1,6 @@
 import { ContestDashboard } from "@/components/contest-dashboard";
 import { getSessionUser } from "@/lib/auth/session";
-import { maskUid } from "@/lib/domain/contest";
+import { maskUid, TIMELINE_PAGE_SIZE } from "@/lib/domain/contest";
 import type { CurrentUser, TimelineEntry, TimelinePagination } from "@/lib/client/types";
 import { getContestData, getTimeline, getUserPrediction } from "@/lib/repositories/queries";
 
@@ -11,7 +11,7 @@ export default async function HomePage() {
   let user: CurrentUser | null = null;
   let prediction = null;
   let timeline: TimelineEntry[] = [];
-  let timelinePagination: TimelinePagination = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
+  let timelinePagination: TimelinePagination = { page: 1, pageSize: TIMELINE_PAGE_SIZE, total: 0, totalPages: 1 };
 
   if (sessionUser) {
     prediction = await getUserPrediction(sessionUser.id);

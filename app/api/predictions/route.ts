@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { requireSessionUser } from "@/lib/auth/session";
-import { serializePrediction } from "@/lib/domain/contest";
+import { serializePrediction, TIMELINE_PAGE_SIZE } from "@/lib/domain/contest";
 import { apiFailure, apiSuccess } from "@/lib/http/api-response";
 import { enforceRateLimit, enforceSameOrigin } from "@/lib/http/rate-limit";
 import { getTimeline, getUserPrediction } from "@/lib/repositories/queries";
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       : 1;
     const timeline = prediction
       ? await getTimeline(page)
-      : { entries: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } };
+      : { entries: [], pagination: { page: 1, pageSize: TIMELINE_PAGE_SIZE, total: 0, totalPages: 1 } };
     return apiSuccess({
       prediction,
       timeline: timeline.entries,

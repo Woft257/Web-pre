@@ -23,6 +23,7 @@ import { RulesView } from "@/components/rules-view";
 import { TeamFlag } from "@/components/team-flag";
 import { TimelineView } from "@/components/timeline-view";
 import { apiRequest, formatEventDeadline } from "@/lib/client/api";
+import { TIMELINE_PAGE_SIZE } from "@/lib/domain/contest";
 import type {
   ContestData,
   CurrentUser,
@@ -100,7 +101,7 @@ export function ContestDashboard({
     setPredictionData({
       prediction: null,
       timeline: [],
-      timelinePagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+      timelinePagination: { page: 1, pageSize: TIMELINE_PAGE_SIZE, total: 0, totalPages: 1 },
     });
     setTimelinePage(1);
     setLeaderboard(emptyLeaderboard);

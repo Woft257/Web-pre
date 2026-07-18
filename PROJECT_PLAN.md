@@ -39,7 +39,7 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Access gate bat nhap ma truoc UID.
 - [x] Tab Du doan co ba control day du va confirmation checkbox.
 - [x] Sau submit hien summary khoa va tu chuyen Timeline.
-- [x] Timeline sap xep som den muon, hien masked UID, ba cau tra loi va timestamp GMT+7; server-side pagination 20 luot/trang.
+- [x] Timeline sap xep som den muon, hien masked UID, ba cau tra loi va timestamp GMT+7; server-side pagination 10 luot/trang.
 - [x] Bang xep hang an den khi admin publish.
 - [x] Tab The le co day du noi dung, giai thuong, doi tuong va disclaimer nguoi dung cung cap.
 - [x] Mobile navigation va layout khong horizontal overflow.

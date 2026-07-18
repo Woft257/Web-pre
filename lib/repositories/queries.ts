@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  TIMELINE_PAGE_SIZE,
   serializeLeaderboardEntry,
   serializePrediction,
   serializeResult,
@@ -43,7 +44,7 @@ export async function getUserPrediction(userId: string) {
   return data ? serializePrediction(data) : null;
 }
 
-export async function getTimeline(page = 1, pageSize = 20) {
+export async function getTimeline(page = 1, pageSize = TIMELINE_PAGE_SIZE) {
   const supabase = createAdminClient();
   const from = (page - 1) * pageSize;
   const { data, error, count } = await supabase

@@ -7,6 +7,8 @@ import type {
   TimelineEntry,
 } from "@/lib/client/types";
 
+export const TIMELINE_PAGE_SIZE = 10;
+
 export function maskUid(uid: string) {
   return `${uid.slice(0, 2)}****${uid.slice(-2)}`;
 }

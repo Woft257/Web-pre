@@ -48,7 +48,7 @@ export function TimelineView({
                 <small><Clock3 size={13} />{formatBangkokTime(entry.submittedAt)}</small>
               </div>
               <div className="timeline-answer"><span>Đội thắng</span><strong>{entry.winner === "argentina" ? "Argentina" : "Tây Ban Nha"}</strong></div>
-              <div className="timeline-answer"><span>Tỉ số</span><strong>{entry.argentinaScore} : {entry.spainScore}</strong></div>
+              <div className="timeline-answer"><span>Tỉ số</span><strong>ARG {entry.argentinaScore} : {entry.spainScore} ESP</strong></div>
               <div className="timeline-answer"><span>Messi ghi bàn</span><strong>{entry.messiScores ? "Có" : "Không"}</strong></div>
             </article>
           );

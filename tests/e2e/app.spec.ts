@@ -48,7 +48,7 @@ test("participant submits once, sees the masked FCFS timeline, and can sign back
 
   await expect(page.getByRole("heading", { name: "Thứ tự gửi dự đoán" })).toBeVisible();
   await expect(page.locator(".timeline-entry").getByText(`${uid.slice(0, 2)}****${uid.slice(-2)}`)).toBeVisible();
-  await expect(page.locator(".timeline-entry").filter({ hasText: "2 : 1" })).toBeVisible();
+  await expect(page.locator(".timeline-entry").filter({ hasText: "ARG 2 : 1 ESP" })).toBeVisible();
   await expect(page.locator(".timeline-entry").filter({ hasText: "Messi ghi bànCó" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("masked-timeline.png"), fullPage: true });
 
@@ -107,8 +107,11 @@ test("timeline is paginated after twenty predictions", async ({ page }, testInfo
   await page.goto("/");
   await page.locator(".desktop-nav").getByRole("button", { name: "Timeline" }).click();
   await expect(page.getByText("21 lượt hợp lệ")).toBeVisible();
-  await expect(page.locator(".timeline-entry")).toHaveCount(20);
+  await expect(page.locator(".timeline-entry")).toHaveCount(10);
   await page.locator(".pagination").getByRole("button", { name: "2", exact: true }).click();
+  await expect(page.locator(".timeline-order").getByText("#11", { exact: true })).toBeVisible();
+  await expect(page.locator(".timeline-entry")).toHaveCount(10);
+  await page.locator(".pagination").getByRole("button", { name: "3", exact: true }).click();
   await expect(page.locator(".timeline-order").getByText("#21", { exact: true })).toBeVisible();
   await expect(page.locator(".timeline-entry")).toHaveCount(1);
 });
