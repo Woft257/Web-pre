@@ -1,4 +1,4 @@
-# MEXC VUA PHA LUOI DOC QUYEN - Runbook
+# MEXC BAN LINH VO DICH - Runbook
 
 ## Truoc khi mo su kien
 

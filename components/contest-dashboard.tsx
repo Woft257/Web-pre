@@ -125,10 +125,10 @@ export function ContestDashboard({
     <div className="contest-shell">
       <header className="site-header">
         <div className="header-inner">
-          <Link className="brand-link" href="/" aria-label="MEXC Vua Phá Lưới Độc Quyền">
+          <Link className="brand-link" href="/" aria-label="MEXC Bản lĩnh vô địch">
             <MexcLogo />
             <span className="brand-divider" />
-            <strong>VUA PHÁ LƯỚI ĐỘC QUYỀN</strong>
+            <strong>Bản lĩnh vô địch</strong>
           </Link>
 
           <nav className="desktop-nav" aria-label="Điều hướng chính">
@@ -161,7 +161,7 @@ export function ContestDashboard({
         <div className="contest-banner-content">
           <div>
             <p className="eyebrow">MEXC Football Event 2026</p>
-            <h1>VUA PHÁ LƯỚI ĐỘC QUYỀN</h1>
+            <h1>Bản lĩnh vô địch</h1>
             <p className="banner-subtitle"><Clock3 size={15} /> Nhận dự đoán đến {formatEventDeadline(contest.settings.submissionClosesAt)}</p>
           </div>
           <div className="match-lockup" aria-label="Argentina versus Spain">

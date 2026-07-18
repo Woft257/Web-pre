@@ -2,7 +2,7 @@ insert into public.contest_settings(
   id, title, home_team, away_team, submission_closes_at, predictions_open
 ) values (
   true,
-  'VUA PHÁ LƯỚI ĐỘC QUYỀN',
+  'Bản lĩnh vô địch',
   'Argentina',
   'Spain',
   '2026-07-19 16:59:00+00',

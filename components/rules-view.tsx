@@ -23,7 +23,7 @@ export function RulesView() {
           <div><span>Top 2</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
           <div><span>Top 3</span><strong>Cúp vô địch WC bằng Lego</strong></div>
           <div><span>Top 4-10</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
-          <div><span>10 Lucky Draw</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
+          <div><span>10 Lucky Draw</span><strong>Bình nước Stanley phiên bản World Cup</strong></div>
         </div>
       </div>
 

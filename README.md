@@ -1,6 +1,6 @@
-# MEXC - VUA PHA LUOI DOC QUYEN
+# MEXC - BAN LINH VO DICH
 
-Next.js + Supabase app cho su kien VUA PHA LUOI DOC QUYEN cua cong dong MEXC Viet Nam.
+Next.js + Supabase app cho su kien BAN LINH VO DICH cua cong dong MEXC Viet Nam.
 
 ## Luong nguoi dung
 

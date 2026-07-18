@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "MEXC - VUA PHÁ LƯỚI ĐỘC QUYỀN",
-  description: "VUA PHÁ LƯỚI ĐỘC QUYỀN dành cho cộng đồng MEXC Việt Nam",
+  title: "MEXC - Bản lĩnh vô địch",
+  description: "Bản lĩnh vô địch dành cho cộng đồng MEXC Việt Nam",
   icons: { icon: "/brand/mexc-logo.svg" },
 };
 
