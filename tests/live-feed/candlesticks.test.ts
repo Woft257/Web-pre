@@ -12,7 +12,7 @@ function candle(endPeriodTs: number, bid: string, ask: string) {
 }
 
 describe("Kalshi candlestick history", () => {
-  it("joins the two contracts by time and normalizes their bid/ask midpoints", () => {
+  it("joins the contracts by time and uses home midpoint with its binary complement", () => {
     const history = normalizeKalshiCandlesticks(
       {
         ticker: "FRA",

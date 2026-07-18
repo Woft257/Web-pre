@@ -178,7 +178,7 @@ export function EventDashboard({
       if (connection !== "live") {
         runBackground(refreshLeaderboard());
       }
-    }, 15_000);
+    }, connection === "live" ? 15_000 : 3_000);
     return () => window.clearInterval(interval);
   }, [connection, refreshLeaderboard, refreshMarkets, runBackground]);
 

@@ -20,7 +20,8 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 ### T-7 ngay
 
 - Xac nhan bon Kalshi ticker van active, co bid/ask hop le va dung rule winner.
-- Chay proof-of-coverage; do goal -> FIFA score -> Kalshi `updated_time` moi -> resume.
+- Chay proof-of-coverage; do goal -> FIFA score -> gia Kalshi thuc su thay doi -> hai snapshot -> resume.
+- Tren may worker Cloud, chay `npm run worker:cloud:once` de smoke test roi `npm run worker:cloud` bang process supervisor/Task Scheduler.
 - Apply migration vao Preview, test RLS/RPC/Realtime va backup/restore.
 - Chay `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run test:integration`, `npx supabase test db`, `npm run test:e2e`, `npm run build`.
 
@@ -43,7 +44,7 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 
 - Theo doi Kalshi bid/ask + `updated_time`, FIFA score/status, oracle version va API error rate.
 - Worker suspend ngay khi score tang, score regression, payload sai hoac mot trong hai feed bi loi.
-- Khong resume bang status flag. Cho hai odds snapshot moi sau suspend va xac nhan score khong regression.
+- Manual Suspend tao persistent hold; worker khong duoc tu resume. Khi an Release hold, van cho hai odds snapshot moi va xac nhan score khong regression.
 - Neu provider outage: giu last valid price de xem, khong mo trading; ghi incident timestamp va provider ticket.
 - Neu Supabase/Vercel loi: suspend market khi he thong tro lai truoc khi cho giao dich tiep.
 
@@ -74,7 +75,7 @@ Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase
 
 1. Chuyen market sang `ended`; trading phai disabled.
 2. Lay ket qua final-winner tu nguon chinh thuc va doi chieu nguon thu hai.
-3. Dien result source/reference trong admin, chay preview va doi chieu affected users/total payout.
+3. Doi chieu FIFA official winner, dien result source/reference trong admin, chay preview va doi chieu affected users/total payout.
 4. Xac nhan lan hai, settle mot lan va kiem tra settlement/audit/ledger/BXH.
 5. Neu tran huy/hoan qua nguong da chot, preview void va xac nhan redemption `0,5/share`.
 

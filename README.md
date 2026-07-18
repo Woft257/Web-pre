@@ -40,18 +40,20 @@ npm run test:e2e
 npm run build
 ```
 
-Integration va E2E test can Supabase local dang chay va `.env.local` hop le. `npm run test:integration` tao du lieu test trong local database; chay `npm run db:reset` de dua database ve seed ban dau.
+Integration va E2E test can Supabase local dang chay va `.env.local` hop le. E2E global setup chi cho phep URL loopback va tu reset Supabase local truoc moi lan chay; no se khong reset Supabase Cloud.
 
 ## Live feed
 
-Gia lay tu bid/ask cua bon Kalshi contract; ty so va trang thai tran lay tu hai FIFA live endpoint. Worker khong doc the, VAR hay event khac va khong can provider API key.
+Gia home dung chinh xac midpoint bid/ask cua home contract Kalshi; away la binary complement de tong payout luon bang 100%. Away contract duoc dung de doi chieu va feed bi tu choi neu lech qua 5 diem phan tram. Ty so va trang thai tran lay tu hai FIFA live endpoint. Worker khong doc the, VAR hay event khac va khong can provider API key.
 
 ```powershell
 npm run worker:live:once
 npm run worker:live
+npm run worker:cloud:once
+npm run worker:cloud
 ```
 
-Lenh `worker:live:once` dung cho smoke test mot vong; `worker:live` poll mac dinh moi 2 giay. Khi FIFA score tang, market suspend cho den khi ca hai ticker Kalshi co update moi va hai snapshot xac nhan da duoc ghi. Khi FIFA tra trang thai chinh thuc ket thuc, market chuyen `ended` nhung van can admin xac nhan de settlement.
+`worker:live*` doc `.env.local` cho Supabase local; `worker:cloud*` doc `.env` cho Supabase Cloud tren may worker rieng. Khi FIFA score tang, market suspend cho den khi gia thuc su thay doi va hai snapshot xac nhan da duoc ghi. Manual admin hold khong the bi worker tu mo; admin phai Release hold, sau do van cho hai snapshot. Khi FIFA tra trang thai chinh thuc ket thuc, worker luu official winner va chuyen `ended`, nhung admin van phai doi chieu source/reference truoc settlement.
 
 Vercel Function khong phu hop cho process polling lien tuc. Web/API van deploy Vercel, con lenh worker trong cung repository phai chay tren mot process always-on. Truoc Production can rehearsal do tre va kiem tra dieu khoan su dung cua cac endpoint cong khai.
 

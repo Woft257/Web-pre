@@ -19,6 +19,9 @@ export interface PublicMarket {
   status: string;
   outcome: "home" | "away" | null;
   feedStatus: string;
+  manualHold: boolean;
+  officialWinner: "home" | "away" | null;
+  officialResultType: number | null;
   suspensionReason: string | null;
   matchMinute: number | null;
   matchPeriod: string | null;

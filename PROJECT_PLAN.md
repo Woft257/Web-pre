@@ -168,8 +168,7 @@ Tai lieu tham chieu:
 
 ### 5.4. Chuan hoa odds
 
-- [x] Moi contract Kalshi dung midpoint: `m_i = (yes_bid_i + yes_ask_i) / 2`.
-- [x] Chuan hoa hai contract: `p_i = m_i / sum(m)` de tong xac suat bang `1`.
+- [x] Home price dung truc tiep midpoint Kalshi: `p_home = (yes_bid + yes_ask) / 2`; away la binary complement `1 - p_home` va away contract la deviation guard 5 diem phan tram.
 - [x] Tu choi ticker sai, market khong active, crossed book, spread qua 15% va timestamp sai.
 - [x] Luu bid/ask, Kalshi `updated_time`, FIFA status, provider/received timestamp, oracle version va cong thuc trong raw payload.
 - [x] Gioi han gia live `0.01-0.99`; chi settlement moi chuyen payout ve `1/0`.
@@ -213,7 +212,7 @@ scheduled -> pre_match_open -> live_open -> ended -> settled
 - [x] Khong cho ban qua so shares dang co.
 - [x] Lenh in-play co acceptance delay 3 giay va kiem tra oracle/VMM version lan cuoi truoc commit.
 - [x] Tu dong suspend khi FIFA score tang, loi/mat feed hoac payload khong hop le; tu dong ended khi FIFA tra ket qua chinh thuc.
-- [x] Sau goal, doi ca hai ticker Kalshi co `updated_time` moi, sau do moi bat dau xac nhan hai snapshot de resume.
+- [x] Sau goal, doi gia Kalshi thuc su thay doi, sau do moi bat dau xac nhan hai snapshot de resume; khong dung metadata `updated_time` lam price-change signal.
 - [x] Khi suspended, giu last valid price chi de hien thi va khong nhan buy/sell.
 - [x] Chi mo lai sau hai oracle snapshot moi lien tiep; score regression bi tu choi va direct status resume bi chan.
 - [ ] Co primary/fallback feed; neu hai nguon lech qua nguong thi suspend va yeu cau admin kiem tra.
@@ -322,7 +321,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - [x] Luu nguon ket qua va result reference/ghi chu khi settle/void.
 - [x] Co dry-run cho biet so UID va tong payout truoc khi settle.
 - [ ] Co quy trinh sua sai: khong sua ledger cu truc tiep; tao reversal/adjustment co audit.
-- [ ] Result feed de xuat ket qua, nhung MVP van yeu cau admin/nguon thu hai xac nhan truoc khi settle hai tran.
+- [x] FIFA official winner/result type duoc luu de khoa outcome sai; admin van phai nhap source/reference cua nguon thu hai truoc settle.
 
 ## 12. Bao mat va do tin cay
 
@@ -459,7 +458,7 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 - Next.js frontend/API, Supabase migrations/seed/RLS/RPC/Realtime, admin operations va giao dien MEXC da co trong repository; oracle price chi con Kalshi/FIFA worker.
 - Local database reset thanh cong tu toan bo migration va `supabase/seed.sql`; `/api/health` tra `200`, database connected va dung hai market.
-- Ket qua verification moi nhat: ESLint pass, TypeScript pass, production build pass, `npm audit` co `0 vulnerabilities`, Vitest `28/28`, integration concurrency `1/1`, pgTAP `57/57`, Playwright `9/9` workflow ap dung pass (`7` case skip co chu dich theo project/viewport).
+- Ket qua verification moi nhat: ESLint pass, TypeScript pass, production build pass, `npm audit` co `0 vulnerabilities`, Vitest `32/32`, integration concurrency `1/1`, pgTAP `68/68`, Playwright `9/9` workflow ap dung pass (`7` case skip co chu dich theo project/viewport).
 - Playwright da test buy + sell/cash-out, Realtime goal/suspend/hai-snapshot-resume, oracle-version/expired quote, UID/admin guard, settle/void preview, asset flags va overflow tai 375/768/1280/1440px.
 - README da ghi cach chay local, test, worker va checklist deploy. Dev app: `http://localhost:3000`; local Supabase Studio: `http://127.0.0.1:54323`.
 - `RUNBOOK.md` da co checklist T-7/T-1/T-30, live monitoring, incident, settle/void va post-event; can dien URL/contact/provider threshold khi chot Production.
@@ -471,11 +470,12 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 
 - Da bo The Odds API khoi live worker; khong can provider API key.
 - Da map Kalshi `FRA/ENG/ARG/ES` va FIFA match `400021542/400021543` trong seed + migration.
-- Worker poll FIFA truoc de phat hien goal/ended, sau do poll hai contract Kalshi, normalize bid/ask midpoint va ghi Supabase atomic.
-- Goal chi resume sau khi ca hai `updated_time` Kalshi moi va co hai snapshot xac nhan; khong ingest the, VAR hay event khac.
+- Worker poll FIFA truoc de phat hien goal/ended, sau do lay home midpoint Kalshi, binary complement va away-contract deviation guard de ghi Supabase atomic.
+- Goal chi resume sau khi gia thuc su thay doi va co hai snapshot xac nhan; khong ingest the, VAR hay event khac.
 - Vercel build bat buoc co `SESSION_SECRET` (>= 32 ky tu), `ADMIN_SECRET` va `ODDS_WORKER_SECRET` (>= 12 ky tu) trong Project Environment Variables; `.env.local` khong duoc deploy do da Git ignore.
 - Supabase Cloud project trong config Production da duoc ket noi thu read-only nhung tra `PGRST205` cho `public.markets`: remote schema/seed chua duoc push; can link dung project, chay `db push --dry-run`, sau do `db push --include-all --include-seed` va xac nhan `/api/health` co hai market.
 - Chart history tren Vercel duoc cache theo market va CDN ngan han; full Kalshi candlesticks chi tai khi doi market, con tick Realtime moi duoc noi truc tiep vao chart de tranh goi lai hai endpoint Kalshi moi lan `oracle_version` tang.
+- Hardening cuoi: feed freshness duoc derive theo tuoi heartbeat o serializer/quote; manual hold ton tai den khi admin release va hai snapshot xac nhan; FIFA winner/result type duoc luu, settle chi tu `ended`, void chi tu `suspended/ended`; Max luon floor theo micro-unit; E2E chi reset Supabase loopback; them CSP/security headers va worker scripts tach local/cloud.
 - Da them unit test parser/mapping. Con bat buoc rehearsal latency va chot noi host process worker lien tuc truoc Production.
 - Heartbeat feed khong tao odds tick/khong tang `oracle_version`; history API nen snapshot trung va chart dung truc Y dong de hien bien dong nho.
 - Chart lay them Kalshi candlestick 1 gio trong 7 ngay, ghep hai ticker theo timestamp, ve hai line home/away va co range `24H/7D` nhu market chart.
@@ -489,3 +489,11 @@ Neu Anh thang chung cuoc -> 1.000 shares redeem 1.000 diem; neu thua -> 0 diem.
 - User password change xac minh password hien tai, rate limit theo user, rotate JWT cho current session va revoke cac JWT cu qua `auth_version`.
 - Desktop header tach rieng user info, nut Change password va nut Sign out; mobile menu cung co hai action rieng.
 - Bo text `Kalshi midpoint` tren market detail; xoa admin replay price route/slider, them RPC match-state khong doi oracle va DB constraint chi chap nhan provider `kalshi-fifa`.
+
+### 18/07/2026 - Final technical audit local
+
+- Feed `healthy` chi con hop le khi heartbeat con moi; quote bi khoa ngay khi feed stale. Khi Supabase Realtime offline, dashboard poll fallback moi 3 giay thay vi cho 15 giay.
+- Admin refresh/status update khong con xoa result source/reference dang nhap. Manual hold, release hold, FIFA official winner va DB transition trigger da duoc test de chan resume/settle/void sai trang thai.
+- E2E global setup co loopback guard va reset database truoc test; sau verification da reset local lan cuoi va chay `worker:live:once`, hai market tro lai `pre_match_open`, feed `healthy` va gia Kalshi that.
+- Final verification local: ESLint pass, TypeScript pass, Vitest `32/32`, integration `1/1`, pgTAP `68/68`, database lint `0` issue, Playwright `9/9` workflow pass (`7` skip theo viewport), production build pass, `/api/health` tra `200` va security headers da duoc smoke test.
+- `supabase db push --dry-run` da ket noi project Production va xac nhan chi con migration `20260718200000_feed_and_resolution_hardening.sql`; dry-run khong thay doi Cloud. Truoc khi chay `worker:cloud`, bat buoc backup, push migration that va smoke test Vercel.

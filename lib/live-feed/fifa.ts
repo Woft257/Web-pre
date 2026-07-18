@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const fifaTeamSchema = z.object({
+  IdTeam: z.string(),
   Score: z.number().int().min(0).nullable(),
   Abbreviation: z.string().min(2).max(4),
 });
@@ -28,6 +29,8 @@ export interface FifaMatchState {
   period: string;
   fifaMatchStatus: number;
   fifaOfficialityStatus: number;
+  resultType: number;
+  winner: "home" | "away" | null;
 }
 
 function parseMinute(matchTime: string | null) {
@@ -86,6 +89,16 @@ export function parseFifaMatch(
     throw new Error("FIFA omitted the score for a live or ended match");
   }
 
+  let winner: "home" | "away" | null = null;
+  if (match.Winner !== null) {
+    if (match.Winner === home.IdTeam) winner = "home";
+    else if (match.Winner === away.IdTeam) winner = "away";
+    else throw new Error(`FIFA winner ${match.Winner} does not match either team`);
+  }
+  if (phase === "ended" && winner === null) {
+    throw new Error("FIFA omitted the official winner for an ended knockout match");
+  }
+
   return {
     matchId: match.IdMatch,
     phase,
@@ -95,5 +108,7 @@ export function parseFifaMatch(
     period: phase === "scheduled" ? "Scheduled" : phase === "ended" ? "Full time" : "Live",
     fifaMatchStatus: match.MatchStatus,
     fifaOfficialityStatus: match.OfficialityStatus,
+    resultType: match.ResultType,
+    winner,
   };
 }

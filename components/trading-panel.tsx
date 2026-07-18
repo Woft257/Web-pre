@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { apiRequest, formatPoints, formatProbability } from "@/lib/client/api";
+import { floorToMicroUnits } from "@/lib/domain/constants";
 import type {
   CurrentUser,
   PortfolioPosition,
@@ -75,7 +76,7 @@ export function TradingPanel({
 
   function setQuickValue(ratio: number) {
     const maximum = action === "buy" ? maxBuy : availableShares;
-    setValue(String(Math.max(0, maximum * ratio).toFixed(action === "buy" ? 0 : 4)));
+    setValue(String(floorToMicroUnits(Math.max(0, maximum * ratio))));
     setQuote(null);
   }
 

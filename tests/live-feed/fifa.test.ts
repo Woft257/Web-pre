@@ -11,8 +11,8 @@ function fifaPayload(overrides: Record<string, unknown> = {}) {
     Winner: null,
     Period: 0,
     MatchTime: "0'",
-    HomeTeam: { Score: null, Abbreviation: "ESP" },
-    AwayTeam: { Score: null, Abbreviation: "ARG" },
+    HomeTeam: { IdTeam: "43969", Score: null, Abbreviation: "ESP" },
+    AwayTeam: { IdTeam: "43922", Score: null, Abbreviation: "ARG" },
     ...overrides,
   };
 }
@@ -24,8 +24,8 @@ describe("FIFA score parser", () => {
         MatchStatus: 2,
         Period: 5,
         MatchTime: "67'",
-        HomeTeam: { Score: 2, Abbreviation: "ESP" },
-        AwayTeam: { Score: 1, Abbreviation: "ARG" },
+        HomeTeam: { IdTeam: "43969", Score: 2, Abbreviation: "ESP" },
+        AwayTeam: { IdTeam: "43922", Score: 1, Abbreviation: "ARG" },
       }),
       "400021543",
       "ARG",
@@ -47,14 +47,16 @@ describe("FIFA score parser", () => {
       Winner: "43969",
       Period: 10,
       MatchTime: "98'",
-      HomeTeam: { Score: 2, Abbreviation: "ESP" },
-      AwayTeam: { Score: 0, Abbreviation: "ARG" },
+      HomeTeam: { IdTeam: "43969", Score: 2, Abbreviation: "ESP" },
+      AwayTeam: { IdTeam: "43922", Score: 0, Abbreviation: "ARG" },
     }), "400021543", "ESP", "ARG");
 
     expect(scheduled.phase).toBe("scheduled");
     expect(scheduled.homeScore).toBe(0);
     expect(ended.phase).toBe("ended");
     expect(ended.period).toBe("Full time");
+    expect(ended.winner).toBe("home");
+    expect(ended.resultType).toBe(1);
   });
 
   it("rejects an unexpected match or team mapping", () => {
@@ -62,5 +64,15 @@ describe("FIFA score parser", () => {
       .toThrow("expected wrong");
     expect(() => parseFifaMatch(fifaPayload(), "400021543", "FRA", "ARG"))
       .toThrow("do not match");
+  });
+
+  it("rejects an official final without a matching winner", () => {
+    expect(() => parseFifaMatch(fifaPayload({
+      MatchStatus: 0,
+      OfficialityStatus: 1,
+      Winner: null,
+      HomeTeam: { IdTeam: "43969", Score: 1, Abbreviation: "ESP" },
+      AwayTeam: { IdTeam: "43922", Score: 1, Abbreviation: "ARG" },
+    }), "400021543", "ESP", "ARG")).toThrow("official winner");
   });
 });

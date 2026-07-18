@@ -12,7 +12,6 @@ const serverEnvSchema = z.object({
   LIVE_FEED_POLL_INTERVAL_MS: z.coerce.number().int().min(500).default(2_000),
   ODDS_WORKER_SECRET: z.string().min(12),
   NEXT_PUBLIC_APP_TIME_ZONE: z.string().default("Asia/Bangkok"),
-  NEXT_PUBLIC_INITIAL_POINTS: z.coerce.number().positive().default(10_000),
 });
 
 export const env = serverEnvSchema.parse(process.env);

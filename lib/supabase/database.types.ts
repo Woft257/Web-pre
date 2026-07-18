@@ -227,11 +227,14 @@ export type Database = {
           kickoff_at: string
           latest_event: string | null
           liquidity_b_microshares: number
+          manual_hold: boolean
           match_minute: number | null
           match_period: string | null
           max_order_micro: number
           max_user_exposure_micro: number
           min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm: number
           oracle_home_probability_ppm: number
           oracle_received_at: string | null
@@ -269,11 +272,14 @@ export type Database = {
           kickoff_at: string
           latest_event?: string | null
           liquidity_b_microshares?: number
+          manual_hold?: boolean
           match_minute?: number | null
           match_period?: string | null
           max_order_micro?: number
           max_user_exposure_micro?: number
           min_order_micro?: number
+          official_result_type?: number | null
+          official_winner?: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm?: number
           oracle_home_probability_ppm?: number
           oracle_received_at?: string | null
@@ -311,11 +317,14 @@ export type Database = {
           kickoff_at?: string
           latest_event?: string | null
           liquidity_b_microshares?: number
+          manual_hold?: boolean
           match_minute?: number | null
           match_period?: string | null
           max_order_micro?: number
           max_user_exposure_micro?: number
           min_order_micro?: number
+          official_result_type?: number | null
+          official_winner?: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm?: number
           oracle_home_probability_ppm?: number
           oracle_received_at?: string | null
@@ -675,11 +684,14 @@ export type Database = {
           kickoff_at: string
           latest_event: string | null
           liquidity_b_microshares: number
+          manual_hold: boolean
           match_minute: number | null
           match_period: string | null
           max_order_micro: number
           max_user_exposure_micro: number
           min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm: number
           oracle_home_probability_ppm: number
           oracle_received_at: string | null
@@ -757,6 +769,74 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      end_market_from_fifa: {
+        Args: {
+          p_away_probability_ppm: number
+          p_away_score: number
+          p_home_probability_ppm: number
+          p_home_score: number
+          p_latest_event: string
+          p_market_id: string
+          p_match_minute: number
+          p_match_period: string
+          p_official_result_type: number
+          p_official_winner: Database["public"]["Enums"]["market_side"]
+          p_provider: string
+          p_raw_payload: Json
+          p_source_at: string
+        }
+        Returns: {
+          away_code: string
+          away_inventory_microshares: number
+          away_name: string
+          away_score: number
+          competition: string
+          created_at: string
+          feed_status: Database["public"]["Enums"]["feed_status"]
+          home_code: string
+          home_inventory_microshares: number
+          home_name: string
+          home_score: number
+          id: string
+          kickoff_at: string
+          latest_event: string | null
+          liquidity_b_microshares: number
+          manual_hold: boolean
+          match_minute: number | null
+          match_period: string | null
+          max_order_micro: number
+          max_user_exposure_micro: number
+          min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
+          oracle_away_probability_ppm: number
+          oracle_home_probability_ppm: number
+          oracle_received_at: string | null
+          oracle_source_at: string | null
+          oracle_version: number
+          outcome: Database["public"]["Enums"]["market_side"] | null
+          provider: string
+          provider_event_id: string | null
+          settled_at: string | null
+          slug: string
+          spread_bps: number
+          stage: string
+          status: Database["public"]["Enums"]["market_status"]
+          suspended_at: string | null
+          suspended_oracle_version: number | null
+          suspension_reason: string | null
+          title: string
+          trading_end_at: string
+          updated_at: string
+          vmm_version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "markets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       heartbeat_market_feed: {
         Args: {
           p_market_id: string
@@ -829,6 +909,60 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      release_market_hold: {
+        Args: { p_actor: string; p_market_id: string }
+        Returns: {
+          away_code: string
+          away_inventory_microshares: number
+          away_name: string
+          away_score: number
+          competition: string
+          created_at: string
+          feed_status: Database["public"]["Enums"]["feed_status"]
+          home_code: string
+          home_inventory_microshares: number
+          home_name: string
+          home_score: number
+          id: string
+          kickoff_at: string
+          latest_event: string | null
+          liquidity_b_microshares: number
+          manual_hold: boolean
+          match_minute: number | null
+          match_period: string | null
+          max_order_micro: number
+          max_user_exposure_micro: number
+          min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
+          oracle_away_probability_ppm: number
+          oracle_home_probability_ppm: number
+          oracle_received_at: string | null
+          oracle_source_at: string | null
+          oracle_version: number
+          outcome: Database["public"]["Enums"]["market_side"] | null
+          provider: string
+          provider_event_id: string | null
+          settled_at: string | null
+          slug: string
+          spread_bps: number
+          stage: string
+          status: Database["public"]["Enums"]["market_status"]
+          suspended_at: string | null
+          suspended_oracle_version: number | null
+          suspension_reason: string | null
+          title: string
+          trading_end_at: string
+          updated_at: string
+          vmm_version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "markets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_market_status: {
         Args: {
           p_actor: string
@@ -852,11 +986,14 @@ export type Database = {
           kickoff_at: string
           latest_event: string | null
           liquidity_b_microshares: number
+          manual_hold: boolean
           match_minute: number | null
           match_period: string | null
           max_order_micro: number
           max_user_exposure_micro: number
           min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm: number
           oracle_home_probability_ppm: number
           oracle_received_at: string | null
@@ -946,11 +1083,14 @@ export type Database = {
           kickoff_at: string
           latest_event: string | null
           liquidity_b_microshares: number
+          manual_hold: boolean
           match_minute: number | null
           match_period: string | null
           max_order_micro: number
           max_user_exposure_micro: number
           min_order_micro: number
+          official_result_type: number | null
+          official_winner: Database["public"]["Enums"]["market_side"] | null
           oracle_away_probability_ppm: number
           oracle_home_probability_ppm: number
           oracle_received_at: string | null

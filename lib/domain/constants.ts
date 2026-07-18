@@ -14,3 +14,7 @@ export function pointsToMicro(points: number) {
 export function microToPoints(micro: number | string | bigint) {
   return Number(micro) / MICRO_UNITS;
 }
+
+export function floorToMicroUnits(value: number) {
+  return Math.floor((value + Number.EPSILON) * MICRO_UNITS) / MICRO_UNITS;
+}

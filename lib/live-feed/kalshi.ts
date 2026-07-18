@@ -64,19 +64,18 @@ export function normalizeKalshiPair(
 ): KalshiBinaryPrice {
   const home = parseKalshiSide(homePayload, homeTicker);
   const away = parseKalshiSide(awayPayload, awayTicker);
-  const total = home.midpoint + away.midpoint;
-  if (!Number.isFinite(total) || total <= 0) {
-    throw new Error("Kalshi pair has no usable price");
-  }
-
-  const homeProbability = home.midpoint / total;
+  const homeProbability = home.midpoint;
+  const awayProbability = 1 - homeProbability;
   if (homeProbability < 0.01 || homeProbability > 0.99) {
-    throw new Error("Kalshi normalized price is outside the supported range");
+    throw new Error("Kalshi home price is outside the supported range");
+  }
+  if (Math.abs(away.midpoint - awayProbability) > 0.05) {
+    throw new Error("Kalshi winner contracts disagree by more than 5 percentage points");
   }
 
   return {
     homeProbability,
-    awayProbability: 1 - homeProbability,
+    awayProbability,
     home,
     away,
     updatedAt: new Date(

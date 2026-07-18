@@ -57,7 +57,7 @@ export function MarketWorkspace({
             </div>
           </div>
           {market.oracleSourceAt && (
-            <span className="last-update">Updated {new Date(market.oracleSourceAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+            <span className="last-update">Feed checked {new Date(market.oracleReceivedAt ?? market.oracleSourceAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
           )}
         </div>
 

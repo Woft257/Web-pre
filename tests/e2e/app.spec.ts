@@ -262,6 +262,11 @@ test("admin match state cannot change Kalshi prices and provider updates remain 
   });
   expect(unsafeResume.status()).toBe(409);
 
+  const releaseResponse = await request.post(`/api/admin/markets/${market.id}/release`, {
+    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+  });
+  expect(releaseResponse.ok()).toBeTruthy();
+
   const confirmationResponse = await pushKalshiUpdate(request, market.id, {
     homeProbability: 0.31,
     homeScore: 0,
@@ -431,6 +436,11 @@ test("admin requires settlement and void previews before commit", async ({ page 
   const voidButton = page.getByRole("button", { name: "Void", exact: true });
   await expect(settleButton).toBeDisabled();
   await expect(voidButton).toBeDisabled();
+
+  await page.getByLabel("Result reference").fill("FIFA official match report test");
+  await expect(page.getByRole("button", { name: "Preview settle" })).toBeDisabled();
+  await page.getByRole("button", { name: "End market" }).click();
+  await expect(page.getByText("Market changed to ended")).toBeVisible();
 
   await page.getByRole("button", { name: "Preview settle" }).click();
   await expect(page.getByText("Settlement preview ready")).toBeVisible();

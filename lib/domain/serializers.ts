@@ -1,4 +1,5 @@
 import { microToPoints, MICRO_UNITS, PRICE_PPM } from "@/lib/domain/constants";
+import { isFeedFresh } from "@/lib/domain/feed";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type MarketRow = Database["public"]["Tables"]["markets"]["Row"];
@@ -6,6 +7,10 @@ export type MarketRow = Database["public"]["Tables"]["markets"]["Row"];
 export function serializeMarket(row: MarketRow) {
   const homeProbability = row.oracle_home_probability_ppm / PRICE_PPM;
   const awayProbability = row.oracle_away_probability_ppm / PRICE_PPM;
+  const feedStatus = row.feed_status === "healthy"
+    && !isFeedFresh(row.status, row.oracle_received_at)
+    ? "stale"
+    : row.feed_status;
   return {
     id: row.id,
     slug: row.slug,
@@ -30,7 +35,10 @@ export function serializeMarket(row: MarketRow) {
     tradingEndAt: row.trading_end_at,
     status: row.status,
     outcome: row.outcome,
-    feedStatus: row.feed_status,
+    feedStatus,
+    manualHold: row.manual_hold,
+    officialWinner: row.official_winner,
+    officialResultType: row.official_result_type,
     suspensionReason: row.suspension_reason,
     matchMinute: row.match_minute,
     matchPeriod: row.match_period,
@@ -41,7 +49,7 @@ export function serializeMarket(row: MarketRow) {
     vmmVersion: row.vmm_version,
     minOrder: microToPoints(row.min_order_micro),
     canTrade:
-      ["pre_match_open", "live_open"].includes(row.status) && row.feed_status === "healthy",
+      ["pre_match_open", "live_open"].includes(row.status) && feedStatus === "healthy",
   };
 }
 

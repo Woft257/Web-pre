@@ -52,12 +52,12 @@ export const adminStatusSchema = z.object({
 export const adminSettlementSchema = z.object({
   outcome: z.enum(["home", "away"]),
   resultSource: z.string().trim().min(2).max(120),
-  resultReference: z.string().trim().max(300).optional().default(""),
+  resultReference: z.string().trim().min(2).max(300),
 });
 
 export const adminVoidSchema = z.object({
   resultSource: z.string().trim().min(2).max(120),
-  resultReference: z.string().trim().max(300).optional().default(""),
+  resultReference: z.string().trim().min(2).max(300),
 });
 
 export const oracleUpdateSchema = z.object({

@@ -20,7 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { MexcLogo } from "@/components/mexc-logo";
 import { apiRequest, formatPoints, formatProbability } from "@/lib/client/api";
@@ -55,10 +55,13 @@ export function AdminConsole() {
   const [minute, setMinute] = useState<number | null>(null);
   const [event, setEvent] = useState("Manual match state update");
   const [outcome, setOutcome] = useState<"home" | "away">("home");
+  const [resultSource, setResultSource] = useState("FIFA official result");
+  const [resultReference, setResultReference] = useState("");
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const initializedMarketId = useRef<string | null>(null);
 
   const market = markets.find((item) => item.id === selectedId) ?? markets[0];
 
@@ -68,8 +71,13 @@ export function AdminConsole() {
       setHomeScore(market.home.score);
       setAwayScore(market.away.score);
       setMinute(market.matchMinute);
-      setOutcome("home");
-      setPreview(null);
+      if (market.officialWinner) setOutcome(market.officialWinner);
+      if (initializedMarketId.current !== market.id) {
+        initializedMarketId.current = market.id;
+        setOutcome(market.officialWinner ?? "home");
+        setResultReference("");
+        setPreview(null);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [market]);
@@ -236,6 +244,17 @@ export function AdminConsole() {
     });
   }
 
+  async function releaseManualHold() {
+    if (!market) return;
+    await runAction(async () => {
+      await apiRequest(`/api/admin/markets/${market.id}/release`, {
+        method: "POST",
+        headers: headers(),
+      });
+      setMessage("Manual hold released; waiting for two fresh provider snapshots");
+    });
+  }
+
   async function previewSettlement() {
     if (!market) return;
     await runAction(async () => {
@@ -268,8 +287,8 @@ export function AdminConsole() {
         headers: headers(),
         body: JSON.stringify({
           outcome,
-          resultSource: "Admin confirmed result",
-          resultReference: event,
+          resultSource,
+          resultReference,
         }),
       });
       setMessage(`Settled ${result.affectedUsers} users / ${formatPoints(result.totalPayout)} PTS`);
@@ -284,8 +303,8 @@ export function AdminConsole() {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
-          resultSource: "Admin void",
-          resultReference: event,
+          resultSource,
+          resultReference,
         }),
       });
       setMessage(`Voided ${result.affectedUsers} users / ${formatPoints(result.totalPayout)} PTS`);
@@ -359,6 +378,7 @@ export function AdminConsole() {
           <div><span>Score</span><strong>{market.home.score} : {market.away.score}</strong></div>
           <div><span>Oracle version</span><strong>{market.oracleVersion}</strong></div>
           <div><span>Home price</span><strong>{formatProbability(market.home.oracleProbability)}</strong></div>
+          <div><span>Manual hold</span><strong>{market.manualHold ? "YES" : "NO"}</strong></div>
         </section>
 
         {error && <div className="admin-notice admin-error"><ShieldAlert size={17} /> {error}</div>}
@@ -510,22 +530,36 @@ export function AdminConsole() {
             <div className="admin-action-list">
               <button className="secondary-button" type="button" onClick={() => void setMarketStatus("live_open")} disabled={loading}><Play size={17} /> Open live</button>
               <button className="secondary-button" type="button" onClick={() => void setMarketStatus("suspended")} disabled={loading}><CircleStop size={17} /> Suspend</button>
+              {market.manualHold && <button className="secondary-button" type="button" onClick={() => void releaseManualHold()} disabled={loading}><Play size={17} /> Release hold</button>}
               <button className="danger-button" type="button" onClick={() => void setMarketStatus("ended")} disabled={loading}><CircleStop size={17} /> End market</button>
             </div>
           </section>
 
           <section className="admin-panel settlement-panel">
             <div className="subsection-title"><Trophy size={18} /><h2>Settlement</h2></div>
+            {market.officialWinner && (
+              <div className="admin-notice admin-success">
+                <CheckCircle2 size={17} /> FIFA official winner: {market.officialWinner === "home" ? market.home.code : market.away.code}
+              </div>
+            )}
             <div className="outcome-switch">
-              <button type="button" className={outcome === "home" ? "active" : ""} onClick={() => { setOutcome("home"); setPreview(null); }}><span>{market.home.code}</span><strong>Winner</strong></button>
-              <button type="button" className={outcome === "away" ? "active" : ""} onClick={() => { setOutcome("away"); setPreview(null); }}><span>{market.away.code}</span><strong>Winner</strong></button>
+              <button type="button" disabled={market.officialWinner === "away"} className={outcome === "home" ? "active" : ""} onClick={() => { setOutcome("home"); setPreview(null); }}><span>{market.home.code}</span><strong>Winner</strong></button>
+              <button type="button" disabled={market.officialWinner === "home"} className={outcome === "away" ? "active" : ""} onClick={() => { setOutcome("away"); setPreview(null); }}><span>{market.away.code}</span><strong>Winner</strong></button>
+            </div>
+            <div className="admin-field">
+              <label htmlFor="result-source">Result source</label>
+              <input id="result-source" value={resultSource} onChange={(e) => setResultSource(e.target.value)} maxLength={120} />
+            </div>
+            <div className="admin-field">
+              <label htmlFor="result-reference">Result reference</label>
+              <input id="result-reference" value={resultReference} onChange={(e) => setResultReference(e.target.value)} maxLength={300} placeholder="Official URL or match report ID" />
             </div>
             {preview && <div className="settlement-preview"><div><span>Affected</span><strong>{preview.affectedUsers}</strong></div><div><span>Total payout</span><strong>{formatPoints(preview.totalPayout)} PTS</strong></div></div>}
             <div className="admin-action-list horizontal-actions">
-              <button className="secondary-button" type="button" onClick={() => void previewSettlement()} disabled={loading}>Preview settle</button>
-              <button className="primary-button" type="button" onClick={() => void settle()} disabled={loading || preview?.kind !== "result"}>Settle</button>
-              <button className="secondary-button" type="button" onClick={() => void previewVoid()} disabled={loading}>Preview void</button>
-              <button className="danger-button" type="button" onClick={() => void voidMarket()} disabled={loading || preview?.kind !== "void"}>Void</button>
+              <button className="secondary-button" type="button" onClick={() => void previewSettlement()} disabled={loading || market.status !== "ended" || resultSource.trim().length < 2 || resultReference.trim().length < 2}>Preview settle</button>
+              <button className="primary-button" type="button" onClick={() => void settle()} disabled={loading || market.status !== "ended" || preview?.kind !== "result"}>Settle</button>
+              <button className="secondary-button" type="button" onClick={() => void previewVoid()} disabled={loading || !["suspended", "ended"].includes(market.status) || resultSource.trim().length < 2 || resultReference.trim().length < 2}>Preview void</button>
+              <button className="danger-button" type="button" onClick={() => void voidMarket()} disabled={loading || !["suspended", "ended"].includes(market.status) || preview?.kind !== "void"}>Void</button>
             </div>
           </section>
         </div>

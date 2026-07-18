@@ -15,7 +15,7 @@ function market(ticker: string, bid: string, ask: string, updatedTime = "2026-07
 }
 
 describe("Kalshi live price parser", () => {
-  it("uses bid/ask midpoints and normalizes the two contracts to 100 percent", () => {
+  it("uses the home midpoint exactly and prices away as its binary complement", () => {
     const price = normalizeKalshiPair(
       market("FRA", "0.6300", "0.6400"),
       market("ENG", "0.3600", "0.3700"),
@@ -28,7 +28,7 @@ describe("Kalshi live price parser", () => {
     expect(price.homeProbability + price.awayProbability).toBe(1);
   });
 
-  it("normalizes small pricing gaps between separate winner contracts", () => {
+  it("does not move the home midpoint when the corroborating contract has a small gap", () => {
     const price = normalizeKalshiPair(
       market("ARG", "0.4110", "0.4170"),
       market("ESP", "0.5850", "0.5880"),
@@ -36,8 +36,8 @@ describe("Kalshi live price parser", () => {
       "ESP",
     );
 
-    expect(price.homeProbability).toBeCloseTo(0.413793, 6);
-    expect(price.awayProbability).toBeCloseTo(0.586207, 6);
+    expect(price.homeProbability).toBe(0.414);
+    expect(price.awayProbability).toBeCloseTo(0.586, 12);
   });
 
   it("rejects a wrong ticker, crossed book, and inactive market", () => {
@@ -49,5 +49,11 @@ describe("Kalshi live price parser", () => {
       ...market("FRA", "0.4", "0.5"),
       market: { ...market("FRA", "0.4", "0.5").market, status: "closed" },
     }, "FRA")).toThrow("is closed");
+    expect(() => normalizeKalshiPair(
+      market("FRA", "0.6", "0.62"),
+      market("ENG", "0.5", "0.52"),
+      "FRA",
+      "ENG",
+    )).toThrow("disagree");
   });
 });

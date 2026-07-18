@@ -19,6 +19,8 @@
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "worker:live": "tsx --env-file=.env.local worker/odds-ingest.ts",
     "worker:live:once": "tsx --env-file=.env.local worker/odds-ingest.ts --once",
+    "worker:cloud": "tsx --env-file=.env worker/odds-ingest.ts",
+    "worker:cloud:once": "tsx --env-file=.env worker/odds-ingest.ts --once",
     "worker:odds": "npm run worker:live"
   },
   "engines": {

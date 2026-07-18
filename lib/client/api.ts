@@ -44,6 +44,6 @@ export function formatBangkokTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "Asia/Bangkok",
+    timeZone: process.env.NEXT_PUBLIC_APP_TIME_ZONE ?? "Asia/Bangkok",
   }).format(new Date(value));
 }

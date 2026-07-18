@@ -48,16 +48,6 @@ function baseStatus(phase: "scheduled" | "live" | "ended"): OracleStatus {
   return "ended";
 }
 
-function kalshiHasUpdatedAfterSuspension(
-  market: Market,
-  homeUpdatedAt: string,
-  awayUpdatedAt: string,
-) {
-  if (!market.suspended_at) return false;
-  const suspendedAt = Date.parse(market.suspended_at);
-  return Date.parse(homeUpdatedAt) > suspendedAt && Date.parse(awayUpdatedAt) > suspendedAt;
-}
-
 async function syncMarket(market: Market) {
   const mapping = parseLiveFeedMapping(market.provider_event_id);
   const fifaPayload = await fetchJson(fifaMatchUrl(mapping), "FIFA");
@@ -72,18 +62,20 @@ async function syncMarket(market: Market) {
   // A final score comes from FIFA, not from an exchange price. Keep the last mark
   // only to satisfy the oracle row contract, then permanently end trading.
   if (fifa.phase === "ended") {
-    const { error } = await supabase.rpc("update_market_oracle", {
+    if (!fifa.winner) throw new Error("FIFA ended the match without an official winner");
+    const { error } = await supabase.rpc("end_market_from_fifa", {
       p_market_id: market.id,
       p_provider: "kalshi-fifa",
       p_home_probability_ppm: market.oracle_home_probability_ppm,
       p_away_probability_ppm: market.oracle_away_probability_ppm,
       p_source_at: sourceAt,
-      p_status: "ended",
       p_home_score: fifa.homeScore,
       p_away_score: fifa.awayScore,
-      p_match_minute: fifa.minute ?? undefined,
+      p_match_minute: fifa.minute ?? 0,
       p_match_period: fifa.period,
-      p_latest_event: market.latest_event ?? undefined,
+      p_latest_event: market.latest_event ?? "FIFA official final",
+      p_official_winner: fifa.winner,
+      p_official_result_type: fifa.resultType,
       p_raw_payload: {
         priceSource: "last-valid-kalshi-mark",
         scoreSource: "fifa-live-api",
@@ -91,6 +83,8 @@ async function syncMarket(market: Market) {
           matchId: fifa.matchId,
           matchStatus: fifa.fifaMatchStatus,
           officialityStatus: fifa.fifaOfficialityStatus,
+          resultType: fifa.resultType,
+          winner: fifa.winner,
         },
       },
     });
@@ -109,17 +103,16 @@ async function syncMarket(market: Market) {
     mapping.kalshi.awayTicker,
   );
   const homePpm = Math.round(price.homeProbability * 1_000_000);
+  const awayPpm = 1_000_000 - homePpm;
+  const priceChanged = homePpm !== market.oracle_home_probability_ppm
+    || awayPpm !== market.oracle_away_probability_ppm;
   const scoreIncreased = fifa.homeScore > market.home_score || fifa.awayScore > market.away_score;
   let status = baseStatus(fifa.phase);
   let suspensionReason: string | undefined;
 
   if (scoreIncreased) {
     status = "suspended";
-    const previousPollAt = market.oracle_source_at ? Date.parse(market.oracle_source_at) : NaN;
-    const priceAlreadyRefreshed = Number.isFinite(previousPollAt)
-      && Date.parse(price.home.updatedAt) > previousPollAt
-      && Date.parse(price.away.updatedAt) > previousPollAt;
-    suspensionReason = priceAlreadyRefreshed
+    suspensionReason = priceChanged
       ? GOAL_PRICE_OBSERVED_REASON
       : GOAL_WAITING_REASON;
   } else if (
@@ -127,18 +120,16 @@ async function syncMarket(market: Market) {
     && market.suspension_reason === GOAL_WAITING_REASON
   ) {
     status = "suspended";
-    suspensionReason = kalshiHasUpdatedAfterSuspension(
-      market,
-      price.home.updatedAt,
-      price.away.updatedAt,
-    )
-      ? GOAL_PRICE_OBSERVED_REASON
-      : GOAL_WAITING_REASON;
+    suspensionReason = priceChanged ? GOAL_PRICE_OBSERVED_REASON : GOAL_WAITING_REASON;
   } else if (
     market.status === "suspended"
     && market.suspension_reason === GOAL_PRICE_OBSERVED_REASON
   ) {
     status = "live_open";
+  }
+  if (market.manual_hold) {
+    status = "suspended";
+    suspensionReason = market.suspension_reason ?? "Manual admin hold";
   }
 
   const latestEvent = scoreIncreased
@@ -147,7 +138,7 @@ async function syncMarket(market: Market) {
   const rawPayload: Json = {
     priceSource: "kalshi-rest-midpoint",
     scoreSource: "fifa-live-api",
-    normalization: "normalize-two-kalshi-yes-midpoints-v1",
+    pricing: "home-yes-midpoint-with-binary-complement-v1",
     kalshi: {
       home: {
         ticker: price.home.ticker,
@@ -161,6 +152,7 @@ async function syncMarket(market: Market) {
         ask: price.away.ask,
         updatedAt: price.away.updatedAt,
       },
+      awayObservedMidpoint: price.away.midpoint,
     },
     fifa: {
       matchId: fifa.matchId,
@@ -170,8 +162,7 @@ async function syncMarket(market: Market) {
     ...(scoreIncreased && latestEvent ? { event: latestEvent } : {}),
   };
 
-  const stateChanged = homePpm !== market.oracle_home_probability_ppm
-    || 1_000_000 - homePpm !== market.oracle_away_probability_ppm
+  const stateChanged = priceChanged
     || fifa.homeScore !== market.home_score
     || fifa.awayScore !== market.away_score
     || status !== market.status
@@ -194,7 +185,7 @@ async function syncMarket(market: Market) {
     p_market_id: market.id,
     p_provider: "kalshi-fifa",
     p_home_probability_ppm: homePpm,
-    p_away_probability_ppm: 1_000_000 - homePpm,
+    p_away_probability_ppm: awayPpm,
     p_source_at: sourceAt,
     p_status: status,
     p_home_score: fifa.homeScore,

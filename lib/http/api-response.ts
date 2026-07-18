@@ -56,6 +56,12 @@ export function apiFailure(error: unknown) {
     "MARKET_EXPOSURE_LIMIT",
     "INSUFFICIENT_BALANCE",
     "INSUFFICIENT_SHARES",
+    "MARKET_ALREADY_RESOLVED",
+    "MARKET_ALREADY_ENDED",
+    "MARKET_MUST_BE_ENDED",
+    "MARKET_NOT_READY_FOR_VOID",
+    "SETTLEMENT_OUTCOME_MISMATCH",
+    "MARKET_NOT_ON_MANUAL_HOLD",
   ];
   const matchedCode = conflictCodes.find((code) => message.includes(code));
 
@@ -86,6 +92,12 @@ function humanizeCode(code: string) {
     MARKET_EXPOSURE_LIMIT: "This order exceeds the per-market exposure limit",
     INSUFFICIENT_BALANCE: "Not enough available points",
     INSUFFICIENT_SHARES: "Not enough shares to sell",
+    MARKET_ALREADY_RESOLVED: "This market has already been resolved",
+    MARKET_ALREADY_ENDED: "An ended market cannot be reopened",
+    MARKET_MUST_BE_ENDED: "The market must be ended before settlement",
+    MARKET_NOT_READY_FOR_VOID: "Suspend or end the market before voiding it",
+    SETTLEMENT_OUTCOME_MISMATCH: "The selected winner conflicts with the official FIFA result",
+    MARKET_NOT_ON_MANUAL_HOLD: "This market is not on a manual admin hold",
   };
   return messages[code] ?? code;
 }

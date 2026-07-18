@@ -1,6 +1,6 @@
 begin;
 
-select plan(57);
+select plan(68);
 
 select has_table('public', 'event_users', 'event_users table exists');
 select has_column('public', 'event_users', 'auth_version', 'event users have a JWT auth version');
@@ -247,6 +247,12 @@ select lives_ok(
   'market can be suspended'
 );
 
+select is(
+  (select manual_hold from public.markets where id = (select market_id from test_context)),
+  true,
+  'admin suspension creates a persistent manual hold'
+);
+
 select throws_ok(
   $$
     select * from public.place_trade(
@@ -268,6 +274,21 @@ select throws_ok(
 
 select throws_ok(
   $$
+    select public.settle_market(
+      (select market_id from test_context),
+      'away',
+      'integration-test',
+      'suspended-too-early',
+      'test-admin'
+    )
+  $$,
+  'P0001',
+  'MARKET_MUST_BE_ENDED',
+  'suspended market cannot be settled before official full time'
+);
+
+select throws_ok(
+  $$
     select public.set_market_status(
       (select market_id from test_context),
       'live_open',
@@ -278,6 +299,47 @@ select throws_ok(
   'P0001',
   'RESUME_REQUIRES_FRESH_ODDS',
   'direct resume is rejected without fresh odds confirmation'
+);
+
+select lives_ok(
+  $$
+    select public.update_market_oracle(
+      (select market_id from test_context),
+      'kalshi-fifa',
+      305000,
+      695000,
+      now() + interval '1.5 seconds',
+      'live_open',
+      0::smallint,
+      1::smallint,
+      32::smallint,
+      'second_half',
+      'Provider tick during manual hold'
+    )
+  $$,
+  'provider prices can update while manual hold remains active'
+);
+
+select is(
+  (select status from public.markets where id = (select market_id from test_context)),
+  'suspended'::public.market_status,
+  'provider cannot release a manual hold'
+);
+
+select lives_ok(
+  $$
+    select public.release_market_hold(
+      (select market_id from test_context),
+      'test-admin'
+    )
+  $$,
+  'admin can release a manual hold into snapshot confirmation'
+);
+
+select is(
+  (select manual_hold from public.markets where id = (select market_id from test_context)),
+  false,
+  'released market is no longer on manual hold'
 );
 
 select lives_ok(
@@ -397,16 +459,61 @@ select is(
   'feed heartbeat still updates the match clock'
 );
 
-select lives_ok(
+select throws_ok(
   $$
-    select public.set_market_status(
+    select public.settle_market(
       (select market_id from test_context),
-      'ended',
-      'Full time',
+      'away',
+      'integration-test',
+      'too-early',
       'test-admin'
     )
   $$,
-  'market can be ended'
+  'P0001',
+  'MARKET_NOT_READY_FOR_SETTLEMENT',
+  'settlement is rejected before the market ends'
+);
+
+select lives_ok(
+  $$
+    select public.end_market_from_fifa(
+      (select market_id from test_context),
+      'kalshi-fifa',
+      320000,
+      680000,
+      now() + interval '7 seconds',
+      0::smallint,
+      1::smallint,
+      90::smallint,
+      'Full time',
+      'FIFA official final',
+      'away',
+      1::smallint,
+      '{"source":"fifa-test"}'::jsonb
+    )
+  $$,
+  'FIFA official result ends the market'
+);
+
+select is(
+  (select official_winner from public.markets where id = (select market_id from test_context)),
+  'away'::public.market_side,
+  'official FIFA winner is stored on the market'
+);
+
+select throws_ok(
+  $$
+    select public.settle_market(
+      (select market_id from test_context),
+      'home',
+      'integration-test',
+      'wrong-winner',
+      'test-admin'
+    )
+  $$,
+  'P0001',
+  'SETTLEMENT_OUTCOME_MISMATCH',
+  'settlement cannot contradict the official FIFA winner'
 );
 
 select lives_ok(
@@ -462,6 +569,32 @@ select lives_ok(
     )
   $$,
   'trade creates shares for void test'
+);
+
+select throws_ok(
+  $$
+    select public.void_market(
+      (select void_market_id from test_context),
+      'integration-test',
+      'unsafe-open-void',
+      'test-admin'
+    )
+  $$,
+  'P0001',
+  'MARKET_NOT_READY_FOR_VOID',
+  'open market cannot be voided'
+);
+
+select lives_ok(
+  $$
+    select public.set_market_status(
+      (select void_market_id from test_context),
+      'suspended',
+      'Preparing emergency void',
+      'test-admin'
+    )
+  $$,
+  'market is suspended before an emergency void'
 );
 
 select lives_ok(

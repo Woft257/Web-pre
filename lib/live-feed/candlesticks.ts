@@ -60,15 +60,16 @@ export function normalizeKalshiCandlesticks(
     const homeMidpoint = candleMidpoint(homeCandle);
     const awayMidpoint = candleMidpoint(awayCandle);
     if (homeMidpoint === null || awayMidpoint === null) return [];
-    const total = homeMidpoint + awayMidpoint;
-    const homeProbability = homeMidpoint / total;
+    const homeProbability = homeMidpoint;
+    const awayProbability = 1 - homeProbability;
     if (!Number.isFinite(homeProbability) || homeProbability < 0.01 || homeProbability > 0.99) {
       return [];
     }
+    if (Math.abs(awayMidpoint - awayProbability) > 0.05) return [];
 
     return [{
       homeProbability,
-      awayProbability: 1 - homeProbability,
+      awayProbability,
       sourceAt: new Date(homeCandle.end_period_ts * 1_000).toISOString(),
       oracleVersion: 0,
       event: null,

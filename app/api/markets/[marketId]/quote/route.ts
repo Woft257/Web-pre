@@ -8,6 +8,7 @@ import {
   pointsToMicro,
   QUOTE_TTL_MS,
 } from "@/lib/domain/constants";
+import { isFeedFresh } from "@/lib/domain/feed";
 import { marketStateFromRow, quoteBuy, quoteSell } from "@/lib/domain/pricing";
 import { signQuoteToken } from "@/lib/domain/quote-token";
 import { ApiError, apiFailure, apiSuccess } from "@/lib/http/api-response";
@@ -35,7 +36,11 @@ export async function POST(
     if (!market) {
       throw new ApiError(404, "MARKET_NOT_FOUND", "Market not found");
     }
-    if (!["pre_match_open", "live_open"].includes(market.status) || market.feed_status !== "healthy") {
+    if (
+      !["pre_match_open", "live_open"].includes(market.status)
+      || market.feed_status !== "healthy"
+      || !isFeedFresh(market.status, market.oracle_received_at)
+    ) {
       throw new ApiError(409, "MARKET_NOT_OPEN", "Trading is currently suspended or closed");
     }
 
