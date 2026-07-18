@@ -7,67 +7,43 @@ beforeAll(() => {
   try {
     process.loadEnvFile(".env.local");
   } catch {
-    // CI can provide the variables directly instead of an env file.
+    // CI can provide local test variables directly.
   }
 });
 
-describe("atomic trade concurrency", () => {
-  it("commits one request when two quotes use the same VMM version", async () => {
+describe("reusable invite code and immutable submission", () => {
+  it("lets multiple UIDs share a code but commits only one prediction per UID", async () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceRoleKey) {
-      throw new Error("Local Supabase credentials are required for integration tests");
-    }
+    if (!url || !serviceRoleKey) throw new Error("Local Supabase credentials are required");
 
     const supabase = createClient<Database>(url, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const uid = String(80_000_000 + ((Date.now() + process.pid) % 10_000_000));
-    const { data: user, error: userError } = await supabase
-      .rpc("create_or_get_event_user", { p_uid: uid });
-    expect(userError).toBeNull();
-    expect(user).toBeTruthy();
+    const suffix = String((Date.now() + process.pid) % 10_000).padStart(4, "0");
+    const codeHash = "e0cc26c8b0fd8608ab1e9122aa260ed5c810a2a7adb12be38b8de6809b414abc";
+    const first = await supabase.rpc("claim_contest_access", { p_uid: `81${suffix}01`, p_code_hash: codeHash });
+    const second = await supabase.rpc("claim_contest_access", { p_uid: `81${suffix}02`, p_code_hash: codeHash });
+    expect(first.error).toBeNull();
+    expect(second.error).toBeNull();
+    expect(first.data?.invite_code_id).toBe(second.data?.invite_code_id);
 
-    const { data: market, error: marketError } = await supabase
-      .from("markets")
-      .select("id, oracle_version, vmm_version")
-      .eq("status", "pre_match_open")
-      .limit(1)
-      .single();
-    expect(marketError).toBeNull();
-    expect(market).toBeTruthy();
-
-    const { error: heartbeatError } = await supabase.rpc("heartbeat_market_feed", {
-      p_market_id: market!.id,
-      p_provider: "kalshi-fifa",
-      p_source_at: new Date().toISOString(),
+    const submit = () => supabase.rpc("submit_contest_prediction", {
+      p_user_id: first.data!.id,
+      p_winner: "argentina",
+      p_argentina_score: 2,
+      p_spain_score: 1,
+      p_messi_scores: true,
     });
-    expect(heartbeatError).toBeNull();
+    const submissions = await Promise.all([submit(), submit()]);
+    expect(submissions.filter((result) => !result.error)).toHaveLength(1);
+    expect(submissions.filter((result) => result.error)[0].error?.message)
+      .toContain("PREDICTION_ALREADY_SUBMITTED");
 
-    const trade = (suffix: string) => supabase.rpc("place_trade", {
-      p_user_id: user!.id,
-      p_market_id: market!.id,
-      p_side: "home",
-      p_action: "buy",
-      p_amount_micro: 6_000_000_000,
-      p_quote_id: crypto.randomUUID(),
-      p_idempotency_key: `concurrency-${suffix}-${crypto.randomUUID()}`,
-      p_expected_oracle_version: market!.oracle_version,
-      p_expected_vmm_version: market!.vmm_version,
-    });
-
-    const results = await Promise.all([trade("a"), trade("b")]);
-    const successes = results.filter((result) => !result.error);
-    const failures = results.filter((result) => result.error);
-    expect(successes).toHaveLength(1);
-    expect(failures).toHaveLength(1);
-    expect(failures[0].error?.message).toContain("VMM_VERSION_CHANGED");
-
-    const [{ data: refreshedUser }, { count: tradeCount }] = await Promise.all([
-      supabase.from("event_users").select("balance_micro").eq("id", user!.id).single(),
-      supabase.from("trades").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
-    ]);
-    expect(refreshedUser?.balance_micro).toBe(4_000_000_000);
-    expect(tradeCount).toBe(1);
+    const { count } = await supabase
+      .from("predictions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", first.data!.id);
+    expect(count).toBe(1);
   });
 });

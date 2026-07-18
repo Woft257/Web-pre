@@ -1,87 +1,35 @@
-# MEXC Kickoff Markets Runbook
+# MEXC World Cup 2026 Prediction - Runbook
 
-> Trang thai: ban local/rehearsal. Phai dien provider contact, production URL va nguoi truc truoc khi su kien bat dau.
+## Truoc khi mo su kien
 
-## 1. Thong tin can dien
+- Backup Supabase Production.
+- Dry-run va apply migration contest; xac nhan dung 5 invite-code hash active.
+- Cau hinh env tren Vercel va rotate cac secret da tung bi chia se.
+- Test hai UID cung dang ky duoc bang mot ma, nhung UID cu khong dang nhap duoc bang ma khac.
+- Xac nhan gio dong prediction la `20/07/2026 02:00 GMT+7`.
+- Test CSV participants va leaderboard.
 
-- Vercel Production URL: `TBD`
-- Supabase Production project: `TBD`
-- Price source: Kalshi public REST market endpoints
-- Score source: FIFA live API (`400021542`, `400021543`)
-- Worker host/process monitor: `TBD`
-- Fallback provider / support contact: `TBD`
-- Nguoi co quyen settle/void: `TBD`
-- Kenh incident noi bo: `TBD`
+## Trong thoi gian nhan prediction
 
-Khong ghi secret hoac API key vao file nay. Secret chi nam trong Vercel/Supabase secret store.
+- Theo doi `/api/health`, participant count va prediction count.
+- Timeline phai chi hien sau khi user da submit va UID luon o dang `12****78`.
+- Neu can dung som, vao `/admin` va bam `Dong du doan`.
+- Khong update/delete row trong `predictions`; database trigger se tu choi `PREDICTION_IMMUTABLE`.
 
-## 2. Truoc su kien
+## Cong bo ket qua
 
-### T-7 ngay
+1. Vao `/admin` bang `ADMIN_SECRET`.
+2. Dong nhan prediction.
+3. Nhap doi thang, ti so Argentina - Tay Ban Nha va Messi co ghi ban hay khong.
+4. Kiem tra lai, bam `Cong bo bang xep hang` va xac nhan dialog.
+5. Kiem tra top theo `points DESC, submitted_at ASC`.
+6. Export participants CSV va leaderboard CSV.
 
-- Xac nhan bon Kalshi ticker van active, co bid/ask hop le va dung rule winner.
-- Chay proof-of-coverage; do goal -> FIFA score -> gia Kalshi thuc su thay doi -> hai snapshot -> resume.
-- Tren may worker Cloud, chay `npm run worker:cloud:once` de smoke test roi `npm run worker:cloud` bang process supervisor/Task Scheduler.
-- Apply migration vao Preview, test RLS/RPC/Realtime va backup/restore.
-- Chay `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run test:integration`, `npx supabase test db`, `npm run test:e2e`, `npm run build`.
+Admin co the cap nhat va cong bo lai neu ket qua nhap sai; moi lan publish deu co `admin_audit_logs`.
 
-### T-1 ngay
+## Sau su kien
 
-- Chot kickoff/trading end theo UTC va doi chieu UI `GMT+7`.
-- Kiem tra `/api/health`, hai market, provider mapping va last source timestamp.
-- Xac nhan alert quota/feed stale, primary/fallback deviation va nguoi truc.
-- Rehearsal admin suspend, hai-snapshot resume, preview settle va preview void.
-- Self-register mot UID test, kiem tra JWT con dang nhap sau reload, reset password/revoke JWT va export user/BXH CSV.
-
-### T-30 phut
-
-- Xac nhan feed `healthy`, score `0-0`, oracle timestamp moi va Realtime dang `live`.
-- Xac nhan admin Match state khong co probability input; moi price tick phai co provider `kalshi-fifa`.
-- Kiem tra mot UID test co the quote; khong commit trade test tren Production neu khong co UID test rieng.
-- Mo admin operations va provider dashboard tren may truc.
-
-## 3. Trong tran
-
-- Theo doi Kalshi bid/ask + `updated_time`, FIFA score/status, oracle version va API error rate.
-- Worker suspend ngay khi score tang, score regression, payload sai hoac mot trong hai feed bi loi.
-- Manual Suspend tao persistent hold; worker khong duoc tu resume. Khi an Release hold, van cho hai odds snapshot moi va xac nhan score khong regression.
-- Neu provider outage: giu last valid price de xem, khong mo trading; ghi incident timestamp va provider ticket.
-- Neu Supabase/Vercel loi: suspend market khi he thong tro lai truoc khi cho giao dich tiep.
-
-## 4. Incident checklist
-
-### Feed stale hoac mat feed
-
-1. Suspend market, ghi ly do va timestamp.
-2. Kiem tra provider status/quota va fallback.
-3. Doi chieu score/clock voi nguon thu hai.
-4. Chi resume sau hai snapshot moi va score hop le.
-
-### Score hoac odds bat thuong
-
-1. Khong sua truc tiep balance, trade, position hoac ledger.
-2. Suspend market; luu raw provider payload va oracle version lien quan.
-3. Doi chieu primary/fallback va lien he provider.
-4. Neu can sua diem, dung adjustment/reversal migration/RPC co audit duoc duyet, khong update ledger cu.
-
-### API/DB loi
-
-1. Kiem tra `/api/health`, Vercel logs va Supabase status.
-2. Suspend market sau khi control plane phuc hoi.
-3. Xac minh idempotency key/trade/ledger truoc khi cho user retry.
-4. Khong replay request settlement neu chua kiem tra settlement record; RPC settlement/void la idempotent.
-
-## 5. Ket thuc va settlement
-
-1. Chuyen market sang `ended`; trading phai disabled.
-2. Lay ket qua final-winner tu nguon chinh thuc va doi chieu nguon thu hai.
-3. Doi chieu FIFA official winner, dien result source/reference trong admin, chay preview va doi chieu affected users/total payout.
-4. Xac nhan lan hai, settle mot lan va kiem tra settlement/audit/ledger/BXH.
-5. Neu tran huy/hoan qua nguong da chot, preview void va xac nhan redemption `0,5/share`.
-
-## 6. Sau su kien
-
-- Export SQL backup, giu provider incident log va settlement references theo retention policy.
-- Smoke test leaderboard/portfolio va xac nhan persistence sau redeploy.
-- Revoke/rotate worker/admin/provider secrets khong con can thiet.
-- Ghi post-event report: latency, suspension duration, requote rate, provider outage va manual action.
+- Export CSV va backup database.
+- Doi chieu dieu kien nhan thuong voi link moi doi tac.
+- Phan bo phan thuong trong 10 ngay lam viec.
+- Rotate `ADMIN_SECRET`, `SESSION_SECRET` va service-role key neu can.

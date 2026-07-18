@@ -1,117 +1,94 @@
-export interface MarketTeam {
-  name: string;
-  code: string;
-  score: number;
-  oracleProbability: number;
-  price: number;
-}
-
-export interface PublicMarket {
-  id: string;
-  slug: string;
-  title: string;
-  competition: string;
-  stage: string;
-  home: MarketTeam;
-  away: MarketTeam;
-  kickoffAt: string;
-  tradingEndAt: string;
-  status: string;
-  outcome: "home" | "away" | null;
-  feedStatus: string;
-  manualHold: boolean;
-  officialWinner: "home" | "away" | null;
-  officialResultType: number | null;
-  suspensionReason: string | null;
-  matchMinute: number | null;
-  matchPeriod: string | null;
-  latestEvent: string | null;
-  oracleSourceAt: string | null;
-  oracleReceivedAt: string | null;
-  oracleVersion: number;
-  vmmVersion: number;
-  minOrder: number;
-  canTrade: boolean;
-}
-
-export interface MarketHistoryPoint {
-  homeProbability: number;
-  awayProbability: number;
-  sourceAt: string;
-  oracleVersion: number;
-  event: string | null;
-}
+export type TeamChoice = "argentina" | "spain";
 
 export interface CurrentUser {
   id: string;
   uid: string;
   maskedUid: string;
-  balance: number;
-  positionValue: number;
-  equity: number;
-  pnl: number;
+  hasPrediction: boolean;
+  submittedAt: string | null;
+}
+
+export interface ContestSettings {
+  title: string;
+  homeTeam: string;
+  awayTeam: string;
+  submissionClosesAt: string;
+  predictionsOpen: boolean;
+  acceptingPredictions: boolean;
+}
+
+export interface Prediction {
+  winner: TeamChoice;
+  argentinaScore: number;
+  spainScore: number;
+  messiScores: boolean;
+  submittedAt: string;
+}
+
+export interface TimelineEntry extends Prediction {
+  order: number;
+  maskedUid: string;
+}
+
+export interface ContestResult {
+  winner: TeamChoice;
+  argentinaScore: number;
+  spainScore: number;
+  messiScores: boolean;
+  publishedAt: string;
+}
+
+export interface ContestStats {
+  participants: number;
+  predictions: number;
+}
+
+export interface ContestData {
+  settings: ContestSettings;
+  result: ContestResult | null;
+  stats: ContestStats;
+}
+
+export interface PredictionData {
+  prediction: Prediction | null;
+  timeline: TimelineEntry[];
 }
 
 export interface LeaderboardEntry {
   rank: number;
   maskedUid: string;
-  balance: number;
-  positionValue: number;
-  equity: number;
-  pnl: number;
-  correctPredictions: number;
-  settledPredictions: number;
-  updatedAt: string;
+  points: number;
+  correctAnswers: number;
+  submittedAt: string;
 }
 
-export interface PortfolioPosition {
-  marketId: string;
-  market: PublicMarket;
-  homeShares: number;
-  awayShares: number;
-  homeCost: number;
-  awayCost: number;
-  grossBought: number;
-  netCost: number;
-  realizedPnl: number;
-  markValue: number;
-  unrealizedPnl: number;
+export interface LeaderboardData {
+  published: boolean;
+  result: ContestResult | null;
+  entries: LeaderboardEntry[];
 }
 
-export interface PortfolioTrade {
+export interface AdminInviteCode {
   id: string;
-  marketId: string;
-  marketTitle: string;
-  side: "home" | "away";
-  action: "buy" | "sell";
-  shares: number;
-  cashDelta: number;
-  averagePrice: number;
+  codeHint: string;
+  status: string;
+  claimCount: number;
+  lastClaimedAt: string | null;
   createdAt: string;
 }
 
-export interface PortfolioData {
-  positions: PortfolioPosition[];
-  trades: PortfolioTrade[];
+export interface AdminParticipant {
+  id: string;
+  uid: string;
+  maskedUid: string;
+  codeHint: string;
+  status: string;
+  createdAt: string;
+  prediction: Prediction | null;
 }
 
-export interface QuoteData {
-  quoteId: string;
-  quoteToken: string;
-  action: "buy" | "sell";
-  side: "home" | "away";
-  shares: number;
-  cashPoints: number;
-  averagePrice: number;
-  priceImpact: number;
-  probabilityBefore: number;
-  probabilityAfter: number;
-  maxPayout: number;
-  expectedProfit: number | null;
-  oracleVersion: number;
-  vmmVersion: number;
-  feedTimestamp: string | null;
-  maxSlippageBps: number;
-  quotedAt: string;
-  expiresAt: string;
+export interface AdminContestData extends ContestData {
+  draftResult: (Omit<ContestResult, "publishedAt"> & { isPublished: boolean }) | null;
+  inviteCodes: AdminInviteCode[];
+  participants: AdminParticipant[];
 }

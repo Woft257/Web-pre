@@ -3,8 +3,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 
+import { SESSION_COOKIE_NAME, SESSION_TTL_SECONDS } from "@/lib/auth/session-config";
 import { signSessionToken, verifySessionToken } from "@/lib/auth/session-token";
-import { SESSION_COOKIE_NAME, SESSION_TTL_SECONDS } from "@/lib/domain/constants";
 import { ApiError } from "@/lib/http/api-response";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -51,7 +51,7 @@ export async function getSessionUser() {
 export async function requireSessionUser() {
   const user = await getSessionUser();
   if (!user) {
-    throw new ApiError(401, "AUTH_REQUIRED", "Enter your 8-digit UID to continue");
+    throw new ApiError(401, "AUTH_REQUIRED", "Enter your access code and 8-digit UID to continue");
   }
   return user;
 }

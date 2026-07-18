@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "MEXC Kickoff Markets",
-  description: "MEXC football prediction event",
+  title: "MEXC World Cup 2026 Prediction",
+  description: "Sự kiện dự đoán chung kết World Cup 2026 dành cho cộng đồng MEXC Việt Nam",
   icons: { icon: "/brand/mexc-logo.svg" },
 };
 
@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body>{children}</body>
     </html>
   );

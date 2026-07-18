@@ -1,758 +1,191 @@
 begin;
 
-select plan(68);
+select plan(38);
 
-select has_table('public', 'event_users', 'event_users table exists');
-select has_column('public', 'event_users', 'auth_version', 'event users have a JWT auth version');
-select has_table('public', 'markets', 'markets table exists');
-select has_table('public', 'trades', 'trades table exists');
+select has_table('public', 'contest_settings', 'contest settings table exists');
+select has_table('public', 'invite_codes', 'reusable invite codes table exists');
+select has_table('public', 'event_users', 'participants table exists');
+select has_table('public', 'predictions', 'predictions table exists');
+select has_table('public', 'contest_results', 'contest results table exists');
 select has_table('public', 'rate_limit_buckets', 'rate limit table exists');
+select has_view('public', 'contest_leaderboard', 'leaderboard view exists');
+select has_column('public', 'invite_codes', 'claim_count', 'invite codes count participant claims');
+select has_column('public', 'event_users', 'auth_version', 'sessions retain an auth version');
 
-select is(
-  public.consume_rate_limit('test', 'test-key', 2, 60),
-  true,
-  'first request is allowed by rate limiter'
-);
+select is(public.consume_rate_limit('contest-test', 'key', 2, 60), true, 'first request is allowed');
+select is(public.consume_rate_limit('contest-test', 'key', 2, 60), true, 'request at limit is allowed');
+select is(public.consume_rate_limit('contest-test', 'key', 2, 60), false, 'request above limit is rejected');
 
-select is(
-  public.consume_rate_limit('test', 'test-key', 2, 60),
-  true,
-  'request at the limit is allowed'
-);
+select is((select count(*)::integer from public.invite_codes), 5, 'five initial reusable codes exist');
+select is((select count(*)::integer from public.invite_codes where status = 'active'), 5, 'all initial codes are active');
 
-select is(
-  public.consume_rate_limit('test', 'test-key', 2, 60),
-  false,
-  'request above the limit is rejected'
-);
-
-create temp table test_context(user_id uuid, market_id uuid, void_market_id uuid);
-
-with test_market as (
-  insert into public.markets (
-    slug,
-    title,
-    competition,
-    stage,
-    home_name,
-    home_code,
-    away_name,
-    away_code,
-    kickoff_at,
-    trading_end_at,
-    status,
-    provider,
-    provider_event_id,
-    oracle_source_at,
-    oracle_received_at
-  ) values (
-    'domain-test-market',
-    'Domain Home vs Domain Away',
-    'Test competition',
-    'Test stage',
-    'Domain Home',
-    'DHM',
-    'Domain Away',
-    'DAW',
-    now() + interval '1 day',
-    now() + interval '2 days',
-    'pre_match_open',
-    'kalshi-fifa',
-    'domain-test-provider-event',
-    now(),
-    now()
-  )
-  returning id
-)
-insert into test_context(user_id, market_id)
-select (public.create_or_get_event_user('12345678')).id, id
-from test_market;
-
-with void_market as (
-  insert into public.markets (
-    slug,
-    title,
-    competition,
-    stage,
-    home_name,
-    home_code,
-    away_name,
-    away_code,
-    kickoff_at,
-    trading_end_at,
-    status,
-    provider,
-    provider_event_id,
-    oracle_source_at,
-    oracle_received_at
-  ) values (
-    'domain-void-market',
-    'Void Home vs Void Away',
-    'Test competition',
-    'Test stage',
-    'Void Home',
-    'VHM',
-    'Void Away',
-    'VAW',
-    now() + interval '1 day',
-    now() + interval '2 days',
-    'pre_match_open',
-    'kalshi-fifa',
-    'domain-void-provider-event',
-    now(),
-    now()
-  )
-  returning id
-)
-update test_context
-set void_market_id = (select id from void_market);
+create temp table test_context(first_user_id uuid, second_user_id uuid);
 
 select lives_ok(
-  $$
-    select public.admin_update_match_state(
-      (select market_id from test_context),
-      0::smallint,
-      0::smallint,
-      8::smallint,
-      'Admin match note',
-      'test-admin'
-    )
-  $$,
-  'admin can update match state without touching the oracle'
-);
-
-select is(
-  (select oracle_home_probability_ppm from public.markets where id = (select market_id from test_context)),
-  500000,
-  'admin match state keeps the Kalshi probability unchanged'
-);
-
-select is(
-  (select oracle_version from public.markets where id = (select market_id from test_context)),
-  1::bigint,
-  'admin match state does not increment oracle version'
-);
-
-select is(
-  (select count(*) from public.odds_snapshots where market_id = (select market_id from test_context)),
-  0::bigint,
-  'admin match state does not create a price snapshot'
-);
-
-select is(
-  (select count(*) from public.admin_audit_logs where market_id = (select market_id from test_context) and action = 'update_match_state'),
-  1::bigint,
-  'admin match state is audited'
-);
-
-select is(
-  (select count(*)
-   from public.ledger_entries
-   where kind = 'initial_grant'
-     and user_id = (select user_id from test_context)),
-  1::bigint,
-  'UID receives its initial grant once'
+  $$ select public.claim_contest_access(
+    '12345678',
+    'f0962e94d4f9d4f3abe8c0cb9802ad20a9c00f717461e816d85e38ebadeea9cd'
+  ) $$,
+  'first UID can claim the shared code'
 );
 
 select lives_ok(
-  $$
-    select * from public.place_trade(
-      (select user_id from test_context),
-      (select market_id from test_context),
-      'away',
-      'buy',
-      350000000,
-      '10000000-0000-4000-8000-000000000001',
-      'domain-buy-0001',
-      1,
-      1
-    )
-  $$,
-  'buy trade succeeds'
+  $$ select public.claim_contest_access(
+    '87654321',
+    'f0962e94d4f9d4f3abe8c0cb9802ad20a9c00f717461e816d85e38ebadeea9cd'
+  ) $$,
+  'second UID can reuse the same code'
 );
 
-select is(
-  (select balance_micro from public.event_users where id = (select user_id from test_context)),
-  9650000000::bigint,
-  'buy trade debits the exact point amount'
-);
-
-select ok(
-  (select away_shares_micro > 680000000 from public.positions where user_id = (select user_id from test_context)),
-  'buy trade creates shares using the VMM quote'
-);
-
-select lives_ok(
-  $$
-    select * from public.place_trade(
-      (select user_id from test_context),
-      (select market_id from test_context),
-      'away',
-      'buy',
-      350000000,
-      '10000000-0000-4000-8000-000000000001',
-      'domain-buy-0001',
-      1,
-      1
-    )
-  $$,
-  'retrying the same idempotency key succeeds'
-);
-
-select is(
-  (select count(*) from public.trades where user_id = (select user_id from test_context)),
-  1::bigint,
-  'idempotent retry does not create another trade'
-);
-
-select lives_ok(
-  $$
-    select public.update_market_oracle(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      300000,
-      700000,
-      now() + interval '1 second',
-      'live_open',
-      0::smallint,
-      1::smallint,
-      32::smallint,
-      'second_half',
-      'England goal',
-      null,
-      3.33,
-      1.43,
-      '{"event":"goal","team":"away"}'::jsonb
-    )
-  $$,
-  'oracle update succeeds after a goal'
-);
-
-select ok(
-  (select position_value_micro > 470000000
-   from public.leaderboard_entries
-   where user_id = (select user_id from test_context)),
-  'leaderboard marks existing shares at the new oracle price'
-);
-
-select lives_ok(
-  $$
-    select public.set_market_status(
-      (select market_id from test_context),
-      'suspended',
-      'VAR review',
-      'test-admin'
-    )
-  $$,
-  'market can be suspended'
-);
-
-select is(
-  (select manual_hold from public.markets where id = (select market_id from test_context)),
-  true,
-  'admin suspension creates a persistent manual hold'
-);
-
-select throws_ok(
-  $$
-    select * from public.place_trade(
-      (select user_id from test_context),
-      (select market_id from test_context),
-      'away',
-      'buy',
-      10000000,
-      '10000000-0000-4000-8000-000000000002',
-      'domain-buy-0002',
-      2,
-      2
-    )
-  $$,
-  'P0001',
-  'MARKET_NOT_OPEN',
-  'suspended market rejects a trade'
-);
-
-select throws_ok(
-  $$
-    select public.settle_market(
-      (select market_id from test_context),
-      'away',
-      'integration-test',
-      'suspended-too-early',
-      'test-admin'
-    )
-  $$,
-  'P0001',
-  'MARKET_MUST_BE_ENDED',
-  'suspended market cannot be settled before official full time'
-);
-
-select throws_ok(
-  $$
-    select public.set_market_status(
-      (select market_id from test_context),
-      'live_open',
-      'Unsafe direct resume',
-      'test-admin'
-    )
-  $$,
-  'P0001',
-  'RESUME_REQUIRES_FRESH_ODDS',
-  'direct resume is rejected without fresh odds confirmation'
-);
-
-select lives_ok(
-  $$
-    select public.update_market_oracle(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      305000,
-      695000,
-      now() + interval '1.5 seconds',
-      'live_open',
-      0::smallint,
-      1::smallint,
-      32::smallint,
-      'second_half',
-      'Provider tick during manual hold'
-    )
-  $$,
-  'provider prices can update while manual hold remains active'
-);
-
-select is(
-  (select status from public.markets where id = (select market_id from test_context)),
-  'suspended'::public.market_status,
-  'provider cannot release a manual hold'
-);
-
-select lives_ok(
-  $$
-    select public.release_market_hold(
-      (select market_id from test_context),
-      'test-admin'
-    )
-  $$,
-  'admin can release a manual hold into snapshot confirmation'
-);
-
-select is(
-  (select manual_hold from public.markets where id = (select market_id from test_context)),
-  false,
-  'released market is no longer on manual hold'
-);
-
-select lives_ok(
-  $$
-    select public.update_market_oracle(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      310000,
-      690000,
-      now() + interval '2 seconds',
-      'live_open',
-      0::smallint,
-      1::smallint,
-      33::smallint,
-      'second_half',
-      'Fresh odds 1/2',
-      null,
-      3.23,
-      1.45,
-      '{"event":"odds-confirmation-1"}'::jsonb
-    )
-  $$,
-  'first fresh recovery snapshot is recorded'
-);
-
-select is(
-  (select status from public.markets where id = (select market_id from test_context)),
-  'suspended'::public.market_status,
-  'one fresh recovery snapshot keeps trading suspended'
-);
-
-select lives_ok(
-  $$
-    select public.update_market_oracle(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      320000,
-      680000,
-      now() + interval '3 seconds',
-      'live_open',
-      0::smallint,
-      1::smallint,
-      34::smallint,
-      'second_half',
-      'Fresh odds 2/2',
-      null,
-      3.13,
-      1.47,
-      '{"event":"odds-confirmation-2"}'::jsonb
-    )
-  $$,
-  'second fresh recovery snapshot is recorded'
-);
-
-select is(
-  (select status from public.markets where id = (select market_id from test_context)),
-  'live_open'::public.market_status,
-  'two fresh recovery snapshots reopen trading'
-);
-
-select throws_ok(
-  $$
-    select public.update_market_oracle(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      330000,
-      670000,
-      now() + interval '4 seconds',
-      'live_open',
-      0::smallint,
-      0::smallint,
-      35::smallint,
-      'second_half',
-      'Invalid score regression'
-    )
-  $$,
-  'P0001',
-  'SCORE_REGRESSION',
-  'score regression is rejected'
-);
-
-create temp table heartbeat_context as
+insert into test_context(first_user_id, second_user_id)
 select
-  oracle_version,
-  (select count(*) from public.odds_snapshots where market_id = m.id) as snapshot_count
-from public.markets m
-where id = (select market_id from test_context);
-
-select lives_ok(
-  $$
-    select public.heartbeat_market_feed(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      now() + interval '6 seconds',
-      36::smallint,
-      'second_half'
-    )
-  $$,
-  'feed heartbeat updates freshness without a price tick'
-);
+  (select id from public.event_users where uid = '12345678'),
+  (select id from public.event_users where uid = '87654321');
 
 select is(
-  (select oracle_version from public.markets where id = (select market_id from test_context)),
-  (select oracle_version from heartbeat_context),
-  'feed heartbeat does not invalidate the oracle version'
-);
-
-select is(
-  (select count(*) from public.odds_snapshots where market_id = (select market_id from test_context)),
-  (select snapshot_count from heartbeat_context),
-  'feed heartbeat does not create an odds snapshot'
-);
-
-select is(
-  (select match_minute from public.markets where id = (select market_id from test_context)),
-  36::smallint,
-  'feed heartbeat still updates the match clock'
-);
-
-select throws_ok(
-  $$
-    select public.settle_market(
-      (select market_id from test_context),
-      'away',
-      'integration-test',
-      'too-early',
-      'test-admin'
-    )
-  $$,
-  'P0001',
-  'MARKET_NOT_READY_FOR_SETTLEMENT',
-  'settlement is rejected before the market ends'
-);
-
-select lives_ok(
-  $$
-    select public.end_market_from_fifa(
-      (select market_id from test_context),
-      'kalshi-fifa',
-      320000,
-      680000,
-      now() + interval '7 seconds',
-      0::smallint,
-      1::smallint,
-      90::smallint,
-      'Full time',
-      'FIFA official final',
-      'away',
-      1::smallint,
-      '{"source":"fifa-test"}'::jsonb
-    )
-  $$,
-  'FIFA official result ends the market'
-);
-
-select is(
-  (select official_winner from public.markets where id = (select market_id from test_context)),
-  'away'::public.market_side,
-  'official FIFA winner is stored on the market'
-);
-
-select throws_ok(
-  $$
-    select public.settle_market(
-      (select market_id from test_context),
-      'home',
-      'integration-test',
-      'wrong-winner',
-      'test-admin'
-    )
-  $$,
-  'P0001',
-  'SETTLEMENT_OUTCOME_MISMATCH',
-  'settlement cannot contradict the official FIFA winner'
-);
-
-select lives_ok(
-  $$
-    select public.settle_market(
-      (select market_id from test_context),
-      'away',
-      'integration-test',
-      'test-result-001',
-      'test-admin'
-    )
-  $$,
-  'winning market settles'
-);
-
-select lives_ok(
-  $$
-    select public.settle_market(
-      (select market_id from test_context),
-      'away',
-      'integration-test',
-      'test-result-001',
-      'test-admin'
-    )
-  $$,
-  'retrying settlement is idempotent'
-);
-
-select is(
-  (select count(*) from public.settlements where market_id = (select market_id from test_context)),
-  1::bigint,
-  'settlement is recorded once'
-);
-
-select is(
-  (select away_shares_micro from public.positions where user_id = (select user_id from test_context)),
-  0::bigint,
-  'settlement redeems and clears winning shares'
-);
-
-select lives_ok(
-  $$
-    select * from public.place_trade(
-      (select user_id from test_context),
-      (select void_market_id from test_context),
-      'home',
-      'buy',
-      100000000,
-      '10000000-0000-4000-8000-000000000003',
-      'domain-void-buy-0001',
-      1,
-      1
-    )
-  $$,
-  'trade creates shares for void test'
-);
-
-select throws_ok(
-  $$
-    select public.void_market(
-      (select void_market_id from test_context),
-      'integration-test',
-      'unsafe-open-void',
-      'test-admin'
-    )
-  $$,
-  'P0001',
-  'MARKET_NOT_READY_FOR_VOID',
-  'open market cannot be voided'
-);
-
-select lives_ok(
-  $$
-    select public.set_market_status(
-      (select void_market_id from test_context),
-      'suspended',
-      'Preparing emergency void',
-      'test-admin'
-    )
-  $$,
-  'market is suspended before an emergency void'
-);
-
-select lives_ok(
-  $$
-    select public.void_market(
-      (select void_market_id from test_context),
-      'integration-test',
-      'test-void-001',
-      'test-admin'
-    )
-  $$,
-  'market void redeems outstanding shares'
-);
-
-select lives_ok(
-  $$
-    select public.void_market(
-      (select void_market_id from test_context),
-      'integration-test',
-      'test-void-001',
-      'test-admin'
-    )
-  $$,
-  'retrying market void is idempotent'
-);
-
-select is(
-  (select count(*)
-   from public.settlements
-   where market_id = (select void_market_id from test_context)
-     and kind = 'void'),
-  1::bigint,
-  'void settlement is recorded once'
-);
-
-select is(
-  (select count(*)
-   from public.ledger_entries
-   where user_id = (select user_id from test_context)
-     and kind = 'void_redemption'),
-  1::bigint,
-  'void redemption ledger is recorded once'
-);
-
-select is(
-  (select home_shares_micro
-   from public.positions
-   where user_id = (select user_id from test_context)
-     and market_id = (select void_market_id from test_context)),
-  0::bigint,
-  'void clears outstanding shares'
-);
-
-select lives_ok(
-  $$
-    create temp table registered_user_context as
-    select id as user_id
-    from public.register_event_user(
-      '99000002',
-      'scrypt$16384$8$1$register-salt$register-key'
-    )
-  $$,
-  'public registration creates a password-protected user'
-);
-
-select is(
-  (select count(*) from public.leaderboard_entries where user_id = (select user_id from registered_user_context)),
-  1::bigint,
-  'registered user is added to the leaderboard'
-);
-
-select is(
-  (select count(*) from public.ledger_entries where user_id = (select user_id from registered_user_context) and kind = 'initial_grant'),
-  1::bigint,
-  'registered user receives one initial grant'
-);
-
-select throws_ok(
-  $$
-    select public.register_event_user(
-      '99000002',
-      'scrypt$16384$8$1$register-salt$register-key'
-    )
-  $$,
-  'P0001',
-  'USER_ALREADY_EXISTS',
-  'registration cannot grant the same UID twice'
-);
-
-select lives_ok(
-  $$
-    create temp table managed_user_context as
-    select id as user_id
-    from public.admin_create_event_user(
-      '99000001',
-      'scrypt$16384$8$1$test-salt$test-key'
-    )
-  $$,
-  'admin creates a password-protected user'
-);
-
-select is(
-  (select count(*) from public.leaderboard_entries where user_id = (select user_id from managed_user_context)),
-  1::bigint,
-  'admin-created user is added to the leaderboard'
-);
-
-select is(
-  (select auth_version from public.event_users where id = (select user_id from managed_user_context)),
-  1,
-  'new user starts at auth version one'
-);
-
-insert into public.uid_sessions(token_hash, user_id, expires_at)
-values ('managed-user-session', (select user_id from managed_user_context), now() + interval '1 hour');
-
-select lives_ok(
-  $$
-    select public.admin_update_user_password(
-      (select user_id from managed_user_context),
-      'scrypt$16384$8$1$new-test-salt$new-test-key'
-    )
-  $$,
-  'admin updates a user password'
-);
-
-select is(
-  (select count(*) from public.uid_sessions where user_id = (select user_id from managed_user_context)),
-  0::bigint,
-  'password update revokes existing sessions'
-);
-
-select is(
-  (select auth_version from public.event_users where id = (select user_id from managed_user_context)),
+  (select count(*)::integer from public.event_users where uid in ('12345678', '87654321')),
   2,
-  'password update invalidates existing JWTs by increasing auth version'
+  'shared code creates two participants'
 );
-
-select lives_ok(
-  $$
-    select public.admin_delete_event_user((select user_id from managed_user_context))
-  $$,
-  'admin deletes a user without trade history'
-);
-
 select is(
-  (select count(*) from public.event_users where id = (select user_id from managed_user_context)),
-  0::bigint,
-  'deleted user is removed'
+  (select claim_count from public.invite_codes where code_hint = '4C4A'),
+  2,
+  'shared code tracks two claimed UIDs'
+);
+select is(
+  (public.claim_contest_access(
+    '12345678',
+    'f0962e94d4f9d4f3abe8c0cb9802ad20a9c00f717461e816d85e38ebadeea9cd'
+  )).id,
+  (select first_user_id from test_context),
+  'same code and UID return the existing participant'
 );
 
 select throws_ok(
-  $$
-    select public.admin_delete_event_user((select user_id from test_context))
-  $$,
+  $$ select public.claim_contest_access('11112222', repeat('0', 64)) $$,
   'P0001',
-  'USER_HAS_TRADE_HISTORY',
-  'admin cannot delete a user with trade history'
+  'INVALID_INVITE_CODE',
+  'unknown invite code is rejected'
+);
+
+select throws_ok(
+  $$ select public.claim_contest_access(
+    '12345678',
+    'e0cc26c8b0fd8608ab1e9122aa260ed5c810a2a7adb12be38b8de6809b414abc'
+  ) $$,
+  'P0001',
+  'INVALID_ACCESS_PAIR',
+  'an existing UID must use its original code'
+);
+
+select lives_ok(
+  $$ select public.submit_contest_prediction(
+    (select first_user_id from test_context),
+    'argentina', 2::smallint, 1::smallint, true
+  ) $$,
+  'first participant submits a prediction'
+);
+
+select lives_ok(
+  $$ select public.submit_contest_prediction(
+    (select second_user_id from test_context),
+    'argentina', 2::smallint, 1::smallint, true
+  ) $$,
+  'second participant submits a prediction'
+);
+
+select is(
+  (select count(*)::integer from public.predictions where user_id in (
+    (select first_user_id from test_context),
+    (select second_user_id from test_context)
+  )),
+  2,
+  'one prediction exists per participant'
+);
+
+select throws_ok(
+  $$ select public.submit_contest_prediction(
+    (select first_user_id from test_context),
+    'spain', 0::smallint, 3::smallint, false
+  ) $$,
+  'P0001',
+  'PREDICTION_ALREADY_SUBMITTED',
+  'a second prediction is rejected'
+);
+
+select throws_ok(
+  $$ update public.predictions set winner = 'spain'
+    where user_id = (select first_user_id from test_context) $$,
+  'P0001',
+  'PREDICTION_IMMUTABLE',
+  'submitted answers cannot be updated'
+);
+
+select throws_ok(
+  $$ delete from public.predictions
+    where user_id = (select first_user_id from test_context) $$,
+  'P0001',
+  'PREDICTION_IMMUTABLE',
+  'submitted answers cannot be deleted'
+);
+
+select is(public.mask_uid('12345678'), '12****78', 'timeline UID is masked');
+
+select lives_ok(
+  $$ select public.publish_contest_result(
+    'argentina', 2::smallint, 1::smallint, true, 'test-admin'
+  ) $$,
+  'admin can publish the official result'
+);
+
+select is(
+  (select predictions_open from public.contest_settings where id = true),
+  false,
+  'publishing closes predictions'
+);
+select is(
+  (select is_published from public.contest_results where id = true),
+  true,
+  'result is marked published'
+);
+select is(
+  (select count(*)::integer from public.contest_leaderboard where user_id in (
+    (select first_user_id from test_context),
+    (select second_user_id from test_context)
+  )),
+  2,
+  'published leaderboard includes both predictions'
+);
+select ok(
+  (select rank from public.contest_leaderboard where user_id = (select first_user_id from test_context))
+    < (select rank from public.contest_leaderboard where user_id = (select second_user_id from test_context)),
+  'earlier tied prediction ranks first'
+);
+select is(
+  (select points from public.contest_leaderboard where user_id = (select first_user_id from test_context)),
+  30,
+  'three correct answers award 30 points'
+);
+select ok(
+  (select rank from public.contest_leaderboard where user_id = (select second_user_id from test_context))
+    > (select rank from public.contest_leaderboard where user_id = (select first_user_id from test_context)),
+  'later tied prediction ranks second'
+);
+select is(
+  (select correct_answers from public.contest_leaderboard where user_id = (select second_user_id from test_context)),
+  3,
+  'leaderboard records three correct answers'
+);
+select throws_ok(
+  $$ select public.set_predictions_open(true, 'test-admin') $$,
+  'P0001',
+  'RESULT_ALREADY_PUBLISHED',
+  'published result prevents reopening predictions'
+);
+select is(
+  (select count(*)::integer from public.admin_audit_logs where action = 'publish_contest_result'),
+  1,
+  'result publication is audited'
 );
 
 select * from finish();

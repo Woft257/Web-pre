@@ -2,469 +2,124 @@ import { readFile } from "node:fs/promises";
 
 import { expect, test } from "@playwright/test";
 
+const reusableCode = "MEXC26-0AD8949CB6FA";
+const secondCode = "MEXC26-2D9F07264C4A";
 const runSeed = Number(String(Date.now()).slice(-5));
-const userPassword = "test-password-2026";
-const workerSecret = process.env.ODDS_WORKER_SECRET ?? "local-worker-secret-change-me";
 
 function uidFor(workerIndex: number, offset = 0) {
   return String(60_000_000 + runSeed * 100 + workerIndex * 10 + offset).padStart(8, "0");
 }
 
-async function provisionUser(request: import("@playwright/test").APIRequestContext, uid: string) {
-  const response = await request.post("/api/admin/users", {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: { uid, password: userPassword },
-  });
-  expect(response.ok()).toBeTruthy();
-}
-
-async function makeMarketFresh(
-  request: import("@playwright/test").APIRequestContext,
-  marketIndex = 0,
-) {
-  const marketsPayload = await (await request.get("/api/markets")).json();
-  const market = marketsPayload.data[marketIndex];
-  const response = await pushKalshiUpdate(request, market.id, {});
-  expect(response.ok()).toBeTruthy();
-  return market;
-}
-
-async function pushKalshiUpdate(
-  request: import("@playwright/test").APIRequestContext,
-  marketId: string,
-  overrides: {
-    homeProbability?: number;
-    homeScore?: number;
-    awayScore?: number;
-    matchMinute?: number | null;
-    status?: "pre_match_open" | "live_open" | "suspended" | "ended";
-    latestEvent?: string;
-  },
-) {
-  const marketsPayload = await (await request.get("/api/markets")).json();
-  const market = marketsPayload.data.find((item: { id: string }) => item.id === marketId);
-  const homeProbability = overrides.homeProbability ?? market.home.oracleProbability;
-  const sourceAt = new Date(Math.max(
-    Date.now(),
-    Date.parse(market.oracleSourceAt ?? "1970-01-01T00:00:00Z") + 1,
-  )).toISOString();
-  return request.post("/api/provider/webhook", {
-    headers: { "x-worker-secret": workerSecret },
-    data: {
-      marketId,
-      provider: "kalshi-fifa",
-      homeProbability,
-      awayProbability: 1 - homeProbability,
-      sourceAt,
-      status: overrides.status ?? market.status,
-      homeScore: overrides.homeScore ?? market.home.score,
-      awayScore: overrides.awayScore ?? market.away.score,
-      matchMinute: overrides.matchMinute === undefined ? market.matchMinute : overrides.matchMinute,
-      matchPeriod: "e2e",
-      latestEvent: overrides.latestEvent ?? "E2E Kalshi/FIFA update",
-      rawPayload: { source: "e2e-kalshi-fifa" },
-    },
-  });
-}
-
-test("self-registration issues a persistent JWT that password reset revokes", async ({ page, request }, testInfo) => {
-  const uid = uidFor(testInfo.workerIndex, 6);
-  const selfChangedPassword = "self-changed-password-2026";
-  const adminResetPassword = "admin-reset-password-2026";
-
+async function enterContest(page: import("@playwright/test").Page, uid: string, code = reusableCode) {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Create account" }).click();
-  const authOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(authOverflow).toBeLessThanOrEqual(1);
-  await page.screenshot({ path: testInfo.outputPath("self-registration.png"), fullPage: true });
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password", { exact: true }).fill(userPassword);
-  await page.getByLabel("Confirm password").fill(userPassword);
-  await page.getByRole("button", { name: "Create account", exact: true }).click();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
+  await page.getByLabel("Mã tham gia").fill(code);
+  await page.getByLabel("UID MEXC").fill(uid);
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await expect(page.getByRole("heading", { name: "Tham gia dự đoán" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Chung kết World Cup 2026", exact: true })).toBeVisible();
+}
 
-  const sessionCookie = (await page.context().cookies())
-    .find((cookie) => cookie.name === "mexc_uid_session");
-  expect(sessionCookie).toBeDefined();
+test("participant submits once, sees the masked FCFS timeline, and can sign back in", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chrome", "desktop submission workflow");
+  const uid = uidFor(testInfo.workerIndex);
+  await enterContest(page, uid);
+
+  const sessionCookie = (await page.context().cookies()).find((cookie) => cookie.name === "mexc_uid_session");
   expect(sessionCookie?.httpOnly).toBe(true);
   expect(sessionCookie?.value.split(".")).toHaveLength(3);
 
-  const meResponse = await page.request.get("/api/me");
-  expect(meResponse.ok()).toBeTruthy();
-  const userId = (await meResponse.json()).data.id as string;
+  await page.getByRole("button", { name: "Argentina" }).click();
+  await page.getByLabel("Tỉ số Argentina").fill("2");
+  await page.getByLabel("Tỉ số Tây Ban Nha").fill("1");
+  await page.getByRole("button", { name: "Có", exact: true }).click();
+  await page.getByLabel(/Tôi xác nhận/).check();
+  await page.screenshot({ path: testInfo.outputPath("prediction-form.png"), fullPage: true });
+  await page.getByRole("button", { name: "Gửi dự đoán" }).click();
 
-  const duplicateRegistration = await request.post("/api/register", {
-    data: { uid, password: userPassword },
-  });
-  expect(duplicateRegistration.status()).toBe(409);
-  expect((await duplicateRegistration.json()).error.code).toBe("USER_ALREADY_EXISTS");
-
-  await page.reload();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Enter your UID" })).toHaveCount(0);
-
-  if (testInfo.project.name === "mobile-chrome") {
-    await page.getByRole("button", { name: "Open menu" }).click();
-    await page.screenshot({ path: testInfo.outputPath("account-actions.png"), fullPage: true });
-    await page.getByRole("button", { name: "Change password" }).click();
-  } else {
-    await page.screenshot({ path: testInfo.outputPath("account-actions.png"), fullPage: true });
-    await page.getByTitle("Change password").click();
-  }
-  await expect(page.getByRole("heading", { name: "Change password" })).toBeVisible();
-  await page.getByLabel("Current password").fill("incorrect-password-2026");
-  await page.getByLabel("New password", { exact: true }).fill(selfChangedPassword);
-  await page.getByLabel("Confirm new password").fill(selfChangedPassword);
-  await page.getByRole("button", { name: "Save password" }).click();
-  await expect(page.getByText("Current password is incorrect")).toBeVisible();
-
-  await page.getByLabel("Current password").fill(userPassword);
-  await page.screenshot({ path: testInfo.outputPath("change-password.png"), fullPage: true });
-  await page.getByRole("button", { name: "Save password" }).click();
-  await expect(page.getByRole("heading", { name: "Password updated" })).toBeVisible();
-  const rotatedCookie = (await page.context().cookies())
-    .find((cookie) => cookie.name === "mexc_uid_session");
-  expect(rotatedCookie?.value).not.toBe(sessionCookie?.value);
-  expect((await page.request.get("/api/me")).ok()).toBeTruthy();
-  await page.getByRole("button", { name: "Done" }).click();
-
-  const oldPasswordLogin = await request.post("/api/session", {
-    data: { uid, password: userPassword },
-  });
-  expect(oldPasswordLogin.status()).toBe(401);
-
-  const passwordReset = await request.patch(`/api/admin/users/${userId}`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: { password: adminResetPassword },
-  });
-  expect(passwordReset.ok()).toBeTruthy();
-  expect((await page.request.get("/api/me")).status()).toBe(401);
+  await expect(page.getByRole("heading", { name: "Thứ tự gửi dự đoán" })).toBeVisible();
+  await expect(page.locator(".timeline-entry").getByText(`${uid.slice(0, 2)}****${uid.slice(-2)}`)).toBeVisible();
+  await expect(page.locator(".timeline-entry").filter({ hasText: "2 : 1" })).toBeVisible();
+  await expect(page.locator(".timeline-entry").filter({ hasText: "Messi ghi bànCó" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("masked-timeline.png"), fullPage: true });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password", { exact: true }).fill(adminResetPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
+  await expect(page.getByLabel("Mã tham gia")).toHaveCount(0);
+  await page.getByTitle("Đăng xuất").click();
+  await expect(page.getByRole("heading", { name: "Tham gia dự đoán" })).toBeVisible();
+  await page.getByLabel("Mã tham gia").fill(reusableCode);
+  await page.getByLabel("UID MEXC").fill(uid);
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await expect(page.getByRole("heading", { name: "Thứ tự gửi dự đoán" })).toBeVisible();
 
-  if (testInfo.project.name === "mobile-chrome") {
-    await page.getByRole("button", { name: "Open menu" }).click();
-    await page.getByRole("button", { name: "Sign out" }).click();
-  } else {
-    await page.getByTitle("Sign out").click();
-  }
-  await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
-  expect((await page.request.get("/api/me")).status()).toBe(401);
-  const deleteUser = await request.delete(`/api/admin/users/${userId}`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
+  const secondSubmission = await page.request.post("/api/predictions", {
+    data: { winner: "spain", argentinaScore: 0, spainScore: 3, messiScores: false },
   });
-  expect(deleteUser.ok()).toBeTruthy();
+  expect(secondSubmission.status()).toBe(409);
+  expect((await secondSubmission.json()).error.code).toBe("PREDICTION_ALREADY_SUBMITTED");
 });
 
-test("UID user can quote, buy, and see the live portfolio", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "desktop workflow");
-  const uid = uidFor(testInfo.workerIndex);
-  await provisionUser(request, uid);
-  await makeMarketFresh(request);
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Enter your UID" })).toBeVisible();
-
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password").fill(userPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  await expect(page.getByLabel("Football markets")).toBeVisible();
-  await expect(page.getByText("10,000 PTS").first()).toBeVisible();
-
-  const pointInput = page.getByLabel("Points");
-  await pointInput.fill("350");
-  await page.getByRole("button", { name: "Get quote" }).click();
-  await expect(page.getByText("Potential profit")).toBeVisible();
-  await page.getByRole("button", { name: "Confirm buy" }).click();
-  await expect(page.getByText(/Bought .* FRA shares/)).toBeVisible();
-
-  await page.getByRole("button", { name: "Sell" }).click();
-  await page.getByRole("button", { name: "50%", exact: true }).click();
-  await page.getByRole("button", { name: "Get quote" }).click();
-  await page.getByRole("button", { name: "Confirm sell" }).click();
-  await expect(page.getByText(/Sold .* FRA shares/)).toBeVisible();
-
-  await page.getByRole("button", { name: /My predictions/ }).first().click();
-  await expect(page.getByRole("heading", { name: "My predictions" })).toBeVisible();
-  await expect(page.getByText("Open positions")).toBeVisible();
-
-  await page.screenshot({ path: testInfo.outputPath("desktop-portfolio.png"), fullPage: true });
-});
-
-test("admin match state cannot change Kalshi prices and provider updates remain realtime", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "desktop realtime workflow");
-  const duplicateKeyErrors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error" && message.text().includes("same key")) {
-      duplicateKeyErrors.push(message.text());
-    }
-  });
-  const marketsResponse = await request.get("/api/markets");
-  const marketsPayload = await marketsResponse.json();
-  const market = marketsPayload.data[0];
+test("access pair is enforced and retired market APIs no longer exist", async ({ request }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chrome", "desktop API security workflow");
   const uid = uidFor(testInfo.workerIndex, 1);
-  await provisionUser(request, uid);
+  const firstAccess = await request.post("/api/session", { data: { code: reusableCode, uid } });
+  expect(firstAccess.ok()).toBeTruthy();
+  await request.delete("/api/session");
 
-  await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password").fill(userPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
-  await expect(page.getByText("Kalshi midpoint")).toHaveCount(0);
-
-  const rejectedPriceEdit = await request.post(`/api/admin/markets/${market.id}/match-state`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeProbability: 0.3,
-      homeScore: 0,
-      awayScore: 1,
-      matchMinute: 32,
-      event: "England goal",
-    },
-  });
-  expect(rejectedPriceEdit.status()).toBe(400);
-
-  const matchStateResponse = await request.post(`/api/admin/markets/${market.id}/match-state`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: {
-      homeScore: 0,
-      awayScore: 1,
-      matchMinute: 32,
-      event: "England goal",
-    },
-  });
-  expect(matchStateResponse.ok()).toBeTruthy();
-  const marketAfterAdmin = (await (await request.get("/api/markets")).json()).data
-    .find((item: { id: string }) => item.id === market.id);
-  expect(marketAfterAdmin.home.oracleProbability).toBe(market.home.oracleProbability);
-  expect(marketAfterAdmin.oracleVersion).toBe(market.oracleVersion);
-  await page.screenshot({ path: testInfo.outputPath("kalshi-only-market.png"), fullPage: true });
-
-  await expect(page.locator(".latest-event").getByText("England goal")).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText("32'")).toBeVisible();
-
-  const suspendResponse = await request.post(`/api/admin/markets/${market.id}/status`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: { status: "suspended", reason: "VAR review" },
-  });
-  expect(suspendResponse.ok()).toBeTruthy();
-  await expect(page.getByText("VAR review").first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole("button", { name: "Get quote" })).toBeDisabled();
-
-  const unsafeResume = await request.post(`/api/admin/markets/${market.id}/status`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-    data: { status: "live_open", reason: "Unsafe direct resume" },
-  });
-  expect(unsafeResume.status()).toBe(409);
-
-  const releaseResponse = await request.post(`/api/admin/markets/${market.id}/release`, {
-    headers: { "x-admin-secret": "local-admin-secret-change-me" },
-  });
-  expect(releaseResponse.ok()).toBeTruthy();
-
-  const confirmationResponse = await pushKalshiUpdate(request, market.id, {
-    homeProbability: 0.31,
-    homeScore: 0,
-    awayScore: 1,
-    matchMinute: 33,
-    status: "live_open",
-    latestEvent: "Fresh Kalshi odds confirmation 1/2",
-  });
-  expect(confirmationResponse.ok()).toBeTruthy();
-  await expect(page.getByText("Awaiting second fresh odds snapshot").first()).toBeVisible({ timeout: 10_000 });
-
-  const resumeResponse = await pushKalshiUpdate(request, market.id, {
-    homeProbability: 0.32,
-    homeScore: 0,
-    awayScore: 1,
-    matchMinute: 34,
-    status: "live_open",
-    latestEvent: "Odds reopened",
-  });
-  expect(resumeResponse.ok()).toBeTruthy();
-  await expect(page.locator(".latest-event").getByText("Odds reopened")).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole("button", { name: "Get quote" })).toBeEnabled();
-  expect(duplicateKeyErrors).toEqual([]);
+  const wrongPair = await request.post("/api/session", { data: { code: secondCode, uid } });
+  expect(wrongPair.status()).toBe(401);
+  expect((await wrongPair.json()).error.code).toBe("INVALID_ACCESS");
+  expect((await request.get("/api/markets")).status()).toBe(404);
+  expect((await request.get("/api/portfolio")).status()).toBe(404);
+  expect((await request.post("/api/provider/webhook", { data: {} })).status()).toBe(404);
 });
 
-test("mobile market layout has no horizontal document overflow", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile-chrome", "mobile layout workflow");
+test("admin publishes the official result and leaderboard", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chrome", "desktop admin workflow");
   const uid = uidFor(testInfo.workerIndex, 2);
-  await provisionUser(request, uid);
-  await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password").fill(userPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
-
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
-  await expect.poll(() => page.locator('img[alt$=" flag"]').evaluateAll((images) =>
-    images.length > 0
-      && images.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0),
-  )).toBeTruthy();
-  await page.screenshot({ path: testInfo.outputPath("mobile-markets.png"), fullPage: true });
-});
-
-test("security guards reject invalid UID, anonymous portfolio, and unauthorized admin", async ({ request }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "API security workflow");
-
-  const invalidUid = await request.post("/api/session", {
-    data: { uid: "123", password: userPassword },
+  const login = await page.request.post("/api/session", { data: { code: reusableCode, uid } });
+  expect(login.ok()).toBeTruthy();
+  const prediction = await page.request.post("/api/predictions", {
+    data: { winner: "argentina", argentinaScore: 2, spainScore: 1, messiScores: true },
   });
-  expect(invalidUid.status()).toBe(400);
+  expect(prediction.ok()).toBeTruthy();
 
-  const invalidRegistration = await request.post("/api/register", {
-    data: { uid: "123", password: userPassword },
-  });
-  expect(invalidRegistration.status()).toBe(400);
-
-  const anonymousPortfolio = await request.get("/api/portfolio");
-  expect(anonymousPortfolio.status()).toBe(401);
-
-  const anonymousPasswordChange = await request.patch("/api/account/password", {
-    data: { currentPassword: userPassword, newPassword: "new-password-2026" },
-  });
-  expect(anonymousPasswordChange.status()).toBe(401);
-
-  const marketsPayload = await (await request.get("/api/markets")).json();
-  const unauthorizedAdmin = await request.post(
-    `/api/admin/markets/${marketsPayload.data[0].id}/status`,
-    { data: { status: "suspended", reason: "Unauthorized test" } },
-  );
-  expect(unauthorizedAdmin.status()).toBe(401);
-
-  const unauthorizedUserExport = await request.get("/api/admin/users.csv");
-  expect(unauthorizedUserExport.status()).toBe(401);
-});
-
-test("an oracle update invalidates an outstanding quote", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "quote version workflow");
-  const uid = uidFor(testInfo.workerIndex, 3);
-  await provisionUser(request, uid);
-  await makeMarketFresh(request, 1);
-  await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password").fill(userPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByLabel("Football markets")).toBeVisible();
-
-  const marketsPayload = await (await request.get("/api/markets")).json();
-  const market = marketsPayload.data[1];
-  const quoteResponse = await page.request.post(`/api/markets/${market.id}/quote`, {
-    data: { action: "buy", side: "home", amount: 100 },
-  });
-  expect(quoteResponse.ok()).toBeTruthy();
-  const quote = (await quoteResponse.json()).data;
-
-  const oracleUpdate = await pushKalshiUpdate(request, market.id, {
-    homeProbability: 0.6,
-    homeScore: 0,
-    awayScore: 0,
-    matchMinute: null,
-    status: "pre_match_open",
-    latestEvent: "Pre-match Kalshi price update",
-  });
-  expect(oracleUpdate.ok()).toBeTruthy();
-
-  const tradeResponse = await page.request.post(`/api/markets/${market.id}/trades`, {
-    data: { quoteToken: quote.quoteToken, idempotencyKey: crypto.randomUUID() },
-  });
-  expect(tradeResponse.status()).toBe(409);
-  expect((await tradeResponse.json()).error.code).toBe("ORACLE_VERSION_CHANGED");
-
-  const expiringQuoteResponse = await page.request.post(`/api/markets/${market.id}/quote`, {
-    data: { action: "buy", side: "home", amount: 100 },
-  });
-  expect(expiringQuoteResponse.ok()).toBeTruthy();
-  const expiringQuote = (await expiringQuoteResponse.json()).data;
-  await page.waitForTimeout(5_500);
-
-  const expiredTrade = await page.request.post(`/api/markets/${market.id}/trades`, {
-    data: { quoteToken: expiringQuote.quoteToken, idempotencyKey: crypto.randomUUID() },
-  });
-  expect(expiredTrade.status()).toBe(409);
-  expect((await expiredTrade.json()).error.code).toBe("QUOTE_EXPIRED");
-});
-
-test("admin requires settlement and void previews before commit", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "admin preview workflow");
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { name: "Admin access" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Preview settle" })).toHaveCount(0);
-  await page.getByLabel("Admin secret").fill("local-admin-secret-change-me");
-  await page.getByRole("button", { name: "Unlock operations" }).click();
-  await expect(page.getByRole("heading", { name: "Market control" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Match state" })).toBeVisible();
-  await expect(page.getByLabel(/probability/i)).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath("admin-match-state.png"), fullPage: true });
+  await page.getByLabel("ADMIN_SECRET").fill("local-admin-secret-change-me");
+  await page.getByRole("button", { name: "Mở quản trị" }).click();
+  await expect(page.getByRole("heading", { name: "Quản trị sự kiện dự đoán" })).toBeVisible();
+  await expect(page.getByText("•••• B6FA").first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: uid })).toBeVisible();
 
-  const managedUid = uidFor(testInfo.workerIndex, 5);
-  await page.getByLabel("UID", { exact: true }).fill(managedUid);
-  await page.getByLabel("Password", { exact: true }).fill(userPassword);
-  await page.getByRole("button", { name: "Add user" }).click();
-  await expect(page.getByRole("cell", { name: managedUid, exact: true })).toBeVisible();
-
-  await page.getByLabel(`New password for ${managedUid}`).fill("updated-password-2026");
-  await page.getByTitle(`Update password for ${managedUid}`).click();
-  await expect(page.getByText(`Password updated for ${managedUid}`)).toBeVisible();
-
-  const usersDownloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export users CSV" }).click();
-  const usersDownload = await usersDownloadPromise;
-  expect(usersDownload.suggestedFilename()).toMatch(/^mexc-users-\d{4}-\d{2}-\d{2}\.csv$/);
-  const usersCsv = await readFile(await usersDownload.path(), "utf8");
-  expect(usersCsv).toContain(`"${managedUid}"`);
-  expect(usersCsv).not.toContain("password_hash");
-  expect(usersCsv).not.toContain("updated-password-2026");
+  await page.getByLabel("Argentina").fill("2");
+  await page.getByLabel("Tây Ban Nha").fill("1");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.screenshot({ path: testInfo.outputPath("admin-contest.png"), fullPage: true });
+  await page.getByRole("button", { name: "Công bố bảng xếp hạng" }).click();
+  await expect(page.getByText("Đã công bố kết quả và bảng xếp hạng")).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export leaderboard CSV" }).click();
+  await page.getByRole("button", { name: "BXH CSV" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^mexc-leaderboard-\d{4}-\d{2}-\d{2}\.csv$/);
+  const csv = await readFile(await download.path(), "utf8");
+  expect(csv).toContain(`"${uid}"`);
+  expect(csv).toContain('"30"');
 
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByTitle(`Delete UID ${managedUid}`).click();
-  await expect(page.getByRole("cell", { name: managedUid, exact: true })).toHaveCount(0);
-
-  const settleButton = page.getByRole("button", { name: "Settle", exact: true });
-  const voidButton = page.getByRole("button", { name: "Void", exact: true });
-  await expect(settleButton).toBeDisabled();
-  await expect(voidButton).toBeDisabled();
-
-  await page.getByLabel("Result reference").fill("FIFA official match report test");
-  await expect(page.getByRole("button", { name: "Preview settle" })).toBeDisabled();
-  await page.getByRole("button", { name: "End market" }).click();
-  await expect(page.getByText("Market changed to ended")).toBeVisible();
-
-  await page.getByRole("button", { name: "Preview settle" }).click();
-  await expect(page.getByText("Settlement preview ready")).toBeVisible();
-  await expect(settleButton).toBeEnabled();
-  await expect(voidButton).toBeDisabled();
-
-  await page.getByRole("button", { name: "Preview void" }).click();
-  await expect(page.getByText("Void preview ready")).toBeVisible();
-  await expect(settleButton).toBeDisabled();
-  await expect(voidButton).toBeEnabled();
+  await page.goto("/");
+  await page.locator(".desktop-nav").getByRole("button", { name: "Bảng xếp hạng" }).click();
+  await expect(page.getByRole("heading", { name: "Bảng xếp hạng" })).toBeVisible();
+  await expect(page.getByText("30 điểm").first()).toBeVisible();
 });
 
-test("required responsive widths do not overflow", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chrome", "responsive matrix");
-  const uid = uidFor(testInfo.workerIndex, 4);
-  await provisionUser(request, uid);
-  await page.goto("/");
-  await page.getByLabel("MEXC UID").fill(uid);
-  await page.getByLabel("Password").fill(userPassword);
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  for (const width of [375, 768, 1280, 1440]) {
-    await page.setViewportSize({ width, height: width < 768 ? 812 : 900 });
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, `overflow at ${width}px`).toBeLessThanOrEqual(1);
-  }
+test("mobile prediction and rules views do not overflow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "mobile layout workflow");
+  await enterContest(page, uidFor(testInfo.workerIndex, 3));
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+    .toBeLessThanOrEqual(1);
+  await page.locator(".mobile-tab-bar").getByRole("button", { name: "Thể lệ" }).click();
+  await expect(page.getByRole("heading", { name: "Thể lệ chương trình" })).toBeVisible();
+  await expect(page.getByText("Tổng giá trị giải thưởng: 2,000 USDT")).toBeVisible();
+  await expect(page.getByText("Sự kiện chỉ dành cho người dùng Việt Nam.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+    .toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath("mobile-rules.png"), fullPage: true });
 });

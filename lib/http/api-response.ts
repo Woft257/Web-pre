@@ -45,23 +45,10 @@ export function apiFailure(error: unknown) {
       ? error.message
       : "Unexpected server error";
   const conflictCodes = [
-    "MARKET_NOT_OPEN",
-    "MARKET_FEED_NOT_HEALTHY",
-    "MARKET_ENDED",
-    "STALE_ORACLE",
-    "ORACLE_VERSION_CHANGED",
-    "VMM_VERSION_CHANGED",
-    "RESUME_REQUIRES_FRESH_ODDS",
-    "SCORE_REGRESSION",
-    "MARKET_EXPOSURE_LIMIT",
-    "INSUFFICIENT_BALANCE",
-    "INSUFFICIENT_SHARES",
-    "MARKET_ALREADY_RESOLVED",
-    "MARKET_ALREADY_ENDED",
-    "MARKET_MUST_BE_ENDED",
-    "MARKET_NOT_READY_FOR_VOID",
-    "SETTLEMENT_OUTCOME_MISMATCH",
-    "MARKET_NOT_ON_MANUAL_HOLD",
+    "PREDICTIONS_CLOSED",
+    "PREDICTION_ALREADY_SUBMITTED",
+    "RESULT_ALREADY_PUBLISHED",
+    "USER_NOT_ACTIVE",
   ];
   const matchedCode = conflictCodes.find((code) => message.includes(code));
 
@@ -81,23 +68,10 @@ export function apiFailure(error: unknown) {
 
 function humanizeCode(code: string) {
   const messages: Record<string, string> = {
-    MARKET_NOT_OPEN: "Trading is currently suspended or closed",
-    MARKET_FEED_NOT_HEALTHY: "The live feed is not healthy; trading is paused",
-    MARKET_ENDED: "This market has ended",
-    STALE_ORACLE: "The live price is stale; wait for a fresh update",
-    ORACLE_VERSION_CHANGED: "The live price changed; request a new quote",
-    VMM_VERSION_CHANGED: "Another trade changed the price; request a new quote",
-    RESUME_REQUIRES_FRESH_ODDS: "Resume requires two fresh odds snapshots after suspension",
-    SCORE_REGRESSION: "The provider score moved backwards; trading remains paused",
-    MARKET_EXPOSURE_LIMIT: "This order exceeds the per-market exposure limit",
-    INSUFFICIENT_BALANCE: "Not enough available points",
-    INSUFFICIENT_SHARES: "Not enough shares to sell",
-    MARKET_ALREADY_RESOLVED: "This market has already been resolved",
-    MARKET_ALREADY_ENDED: "An ended market cannot be reopened",
-    MARKET_MUST_BE_ENDED: "The market must be ended before settlement",
-    MARKET_NOT_READY_FOR_VOID: "Suspend or end the market before voiding it",
-    SETTLEMENT_OUTCOME_MISMATCH: "The selected winner conflicts with the official FIFA result",
-    MARKET_NOT_ON_MANUAL_HOLD: "This market is not on a manual admin hold",
+    PREDICTIONS_CLOSED: "Predictions are now closed",
+    PREDICTION_ALREADY_SUBMITTED: "Your prediction has already been submitted and cannot be changed",
+    RESULT_ALREADY_PUBLISHED: "Published results cannot reopen predictions",
+    USER_NOT_ACTIVE: "This participant is not active",
   };
   return messages[code] ?? code;
 }

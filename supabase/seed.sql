@@ -1,73 +1,23 @@
-insert into public.markets (
-  slug,
-  title,
-  competition,
-  stage,
-  home_name,
-  home_code,
-  away_name,
-  away_code,
-  kickoff_at,
-  trading_end_at,
-  status,
-  provider,
-  provider_event_id,
-  oracle_home_probability_ppm,
-  oracle_away_probability_ppm,
-  oracle_source_at,
-  oracle_received_at
+insert into public.contest_settings(
+  id, title, home_team, away_team, submission_closes_at, predictions_open
+) values (
+  true,
+  'FIFA World Cup 2026 Final Prediction',
+  'Argentina',
+  'Spain',
+  '2026-07-19 19:00:00+00',
+  true
 )
-values
-  (
-    'france-vs-england-third-place',
-    'France vs England',
-    'World Football Championship 2026',
-    'Third-place play-off',
-    'France',
-    'FRA',
-    'England',
-    'ENG',
-    '2026-07-18 21:00:00+00',
-    '2026-07-19 00:00:00+00',
-    'pre_match_open',
-    'kalshi-fifa',
-    '{"kalshi":{"homeTicker":"KXWCADVANCE-26JUL18FRAENG-FRA","awayTicker":"KXWCADVANCE-26JUL18FRAENG-ENG"},"fifa":{"competitionId":"17","seasonId":"285023","stageId":"289291","matchId":"400021542"}}',
-    635000,
-    365000,
-    now(),
-    now()
-  ),
-  (
-    'argentina-vs-spain-final',
-    'Argentina vs Spain',
-    'World Football Championship 2026',
-    'Final',
-    'Argentina',
-    'ARG',
-    'Spain',
-    'ESP',
-    '2026-07-19 19:00:00+00',
-    '2026-07-19 22:00:00+00',
-    'pre_match_open',
-    'kalshi-fifa',
-    '{"kalshi":{"homeTicker":"KXMENWORLDCUP-26-AR","awayTicker":"KXMENWORLDCUP-26-ES"},"fifa":{"competitionId":"17","seasonId":"285023","stageId":"289292","matchId":"400021543"}}',
-    413793,
-    586207,
-    now(),
-    now()
-  )
-on conflict (slug) do update set
+on conflict (id) do update set
   title = excluded.title,
-  competition = excluded.competition,
-  stage = excluded.stage,
-  home_name = excluded.home_name,
-  home_code = excluded.home_code,
-  away_name = excluded.away_name,
-  away_code = excluded.away_code,
-  kickoff_at = excluded.kickoff_at,
-  trading_end_at = excluded.trading_end_at,
-  provider = excluded.provider,
-  provider_event_id = excluded.provider_event_id,
-  oracle_home_probability_ppm = excluded.oracle_home_probability_ppm,
-  oracle_away_probability_ppm = excluded.oracle_away_probability_ppm,
-  updated_at = now();
+  home_team = excluded.home_team,
+  away_team = excluded.away_team,
+  submission_closes_at = excluded.submission_closes_at;
+
+insert into public.invite_codes(code_hash, code_hint) values
+  ('e0cc26c8b0fd8608ab1e9122aa260ed5c810a2a7adb12be38b8de6809b414abc', 'B6FA'),
+  ('f0962e94d4f9d4f3abe8c0cb9802ad20a9c00f717461e816d85e38ebadeea9cd', '4C4A'),
+  ('0d051a55300029d55f01cff5b616def26371af9803e3860e10aa025c68f3fda1', '01BD'),
+  ('e0f6cae5baf8e7f64de155fea14bc069a34b7d1b3448fb97a8b6f8a04500f576', '11E6'),
+  ('d7b464af2105f0781cca2331ea25bda1fce15e4bcb12bf5bf558cd3191a98c14', '4E04')
+on conflict (code_hash) do nothing;

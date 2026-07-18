@@ -1,34 +1,34 @@
-import { EventDashboard } from "@/components/event-dashboard";
+import { ContestDashboard } from "@/components/contest-dashboard";
 import { getSessionUser } from "@/lib/auth/session";
-import { microToPoints } from "@/lib/domain/constants";
-import { serializeMarket } from "@/lib/domain/serializers";
-import type { CurrentUser } from "@/lib/client/types";
-import { listMarkets } from "@/lib/repositories/queries";
-import { createAdminClient } from "@/lib/supabase/server";
+import { maskUid } from "@/lib/domain/contest";
+import type { CurrentUser, TimelineEntry } from "@/lib/client/types";
+import { getContestData, getTimeline, getUserPrediction } from "@/lib/repositories/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [marketRows, sessionUser] = await Promise.all([listMarkets(), getSessionUser()]);
+  const [contest, sessionUser] = await Promise.all([getContestData(), getSessionUser()]);
   let user: CurrentUser | null = null;
+  let prediction = null;
+  let timeline: TimelineEntry[] = [];
 
   if (sessionUser) {
-    const supabase = createAdminClient();
-    const { data: leaderboard } = await supabase
-      .from("leaderboard_entries")
-      .select("*")
-      .eq("user_id", sessionUser.id)
-      .maybeSingle();
+    prediction = await getUserPrediction(sessionUser.id);
+    if (prediction) timeline = await getTimeline();
     user = {
       id: sessionUser.id,
       uid: sessionUser.uid,
-      maskedUid: `${sessionUser.uid.slice(0, 2)}****${sessionUser.uid.slice(-2)}`,
-      balance: microToPoints(sessionUser.balance_micro),
-      positionValue: microToPoints(leaderboard?.position_value_micro ?? 0),
-      equity: microToPoints(leaderboard?.equity_micro ?? sessionUser.balance_micro),
-      pnl: microToPoints(leaderboard?.pnl_micro ?? 0),
+      maskedUid: maskUid(sessionUser.uid),
+      hasPrediction: Boolean(prediction),
+      submittedAt: prediction?.submittedAt ?? null,
     };
   }
 
-  return <EventDashboard initialMarkets={marketRows.map(serializeMarket)} initialUser={user} />;
+  return (
+    <ContestDashboard
+      initialContest={contest}
+      initialUser={user}
+      initialPrediction={{ prediction, timeline }}
+    />
+  );
 }

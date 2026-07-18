@@ -19,10 +19,3 @@ export function requireAdmin(request: NextRequest) {
   }
   return "admin";
 }
-
-export function requireWorker(request: NextRequest) {
-  const secret = request.headers.get("x-worker-secret") ?? "";
-  if (!safeEqual(secret, env.ODDS_WORKER_SECRET)) {
-    throw new ApiError(401, "WORKER_AUTH_REQUIRED", "Worker authorization is required");
-  }
-}

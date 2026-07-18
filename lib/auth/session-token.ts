@@ -3,10 +3,10 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
-import { SESSION_TTL_SECONDS } from "@/lib/domain/constants";
+import { SESSION_TTL_SECONDS } from "@/lib/auth/session-config";
 import { env } from "@/lib/env";
 
-const JWT_ISSUER = "mexc-kickoff-markets";
+const JWT_ISSUER = "mexc-world-cup-prediction";
 const JWT_AUDIENCE = "mexc-event-user";
 const jwtKey = createHash("sha256")
   .update(`mexc-user-session-v1:${env.SESSION_SECRET}`)
