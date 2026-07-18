@@ -17,6 +17,7 @@ async function enterContest(page: import("@playwright/test").Page, uid: string, 
   await page.getByLabel("UID MEXC").fill(uid);
   await page.getByRole("button", { name: "Tiếp tục" }).click();
   await expect(page.getByRole("heading", { name: "Tham gia dự đoán" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "VUA PHÁ LƯỚI ĐỘC QUYỀN", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Chung kết World Cup 2026", exact: true })).toBeVisible();
 }
 
@@ -200,8 +201,8 @@ test("mobile prediction and rules views do not overflow", async ({ page }, testI
   await enterContest(page, uidFor(testInfo.workerIndex, 3));
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
     .toBeLessThanOrEqual(1);
-  await page.locator(".mobile-tab-bar").getByRole("button", { name: "Thể lệ" }).click();
-  await expect(page.getByRole("heading", { name: "Thể lệ chương trình" })).toBeVisible();
+  await page.locator(".mobile-tab-bar").getByRole("button", { name: "Thể lệ & lưu ý" }).click();
+  await expect(page.getByRole("heading", { name: "Thể lệ & lưu ý", exact: true }).first()).toBeVisible();
   await expect(page.getByText("Tổng giá trị giải thưởng: 2,000 USDT")).toBeVisible();
   await expect(page.getByText("Sự kiện chỉ dành cho người dùng Việt Nam.")).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))

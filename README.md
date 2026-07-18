@@ -1,6 +1,6 @@
-# MEXC World Cup 2026 Prediction
+# MEXC - VUA PHA LUOI DOC QUYEN
 
-Next.js + Supabase app cho su kien du doan chung ket World Cup 2026 cua cong dong MEXC Viet Nam.
+Next.js + Supabase app cho su kien VUA PHA LUOI DOC QUYEN cua cong dong MEXC Viet Nam.
 
 ## Luong nguoi dung
 

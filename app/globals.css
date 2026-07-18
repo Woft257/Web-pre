@@ -124,9 +124,9 @@ a { color: inherit; text-decoration: none; }
   min-height: 245px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.25fr 0.9fr 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 34px;
+  gap: 40px;
 }
 .eyebrow { margin: 0 0 8px; color: var(--blue); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .contest-banner h1 { margin: 0; max-width: 560px; font-size: clamp(28px, 3vw, 43px); line-height: 1.08; }
@@ -363,7 +363,9 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 1050px) {
-  .contest-banner-content { grid-template-columns: 1.2fr 0.8fr; }
+  .brand-link strong, .brand-divider { display: none; }
+  .desktop-nav button { padding: 0 10px; }
+  .contest-banner-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .banner-stats { grid-column: 1 / -1; margin-bottom: 20px; }
   .timeline-entry { grid-template-columns: 45px 1fr repeat(3, minmax(100px, 0.8fr)); }
 }
@@ -380,12 +382,13 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
   .contest-banner { min-height: 300px; }
   .contest-banner-content { width: calc(100% - 28px); min-height: 300px; padding: 30px 0 18px; grid-template-columns: 1fr; gap: 24px; }
   .contest-banner h1 { font-size: 30px; }
-  .match-lockup { justify-content: flex-start; }
+  .match-lockup { justify-content: center; }
   .banner-stats { grid-column: auto; margin: 0; }
   .banner-stats div { min-height: 67px; padding: 10px; }
   .banner-stats strong { font-size: 14px; white-space: normal; }
-  .mobile-tab-bar { position: sticky; top: var(--header-height); z-index: 25; height: 56px; display: grid; grid-template-columns: repeat(4, 1fr); background: #080a0e; border-bottom: 1px solid var(--line); }
-  .mobile-tab-bar button { min-width: 0; flex-direction: column; gap: 3px; color: var(--muted); font-size: 10px; }
+  .mobile-tab-bar { position: sticky; top: var(--header-height); z-index: 25; height: 64px; display: grid; grid-template-columns: repeat(4, 1fr); background: #080a0e; border-bottom: 1px solid var(--line); }
+  .mobile-tab-bar button { min-width: 0; padding: 4px 2px; flex-direction: column; gap: 3px; color: var(--muted); font-size: 10px; line-height: 1.15; }
+  .mobile-tab-bar button span { max-width: 100%; white-space: normal; text-align: center; }
   .mobile-tab-bar button.active { color: var(--blue); }
   .contest-main { width: calc(100% - 28px); padding: 28px 0 55px; }
   .timeline-entry { grid-template-columns: 44px 1fr; padding: 14px; }

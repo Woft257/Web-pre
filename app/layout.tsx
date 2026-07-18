@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "MEXC World Cup 2026 Prediction",
-  description: "Sự kiện dự đoán chung kết World Cup 2026 dành cho cộng đồng MEXC Việt Nam",
+  title: "MEXC - VUA PHÁ LƯỚI ĐỘC QUYỀN",
+  description: "VUA PHÁ LƯỚI ĐỘC QUYỀN dành cho cộng đồng MEXC Việt Nam",
   icons: { icon: "/brand/mexc-logo.svg" },
 };
 

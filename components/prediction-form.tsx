@@ -4,7 +4,7 @@ import { Check, Clock3, LoaderCircle, LockKeyhole, Send } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { TeamFlag } from "@/components/team-flag";
-import { apiRequest, formatBangkokTime } from "@/lib/client/api";
+import { apiRequest, formatBangkokTime, formatEventDeadline } from "@/lib/client/api";
 import type { ContestSettings, Prediction, TeamChoice } from "@/lib/client/types";
 
 export function PredictionForm({
@@ -66,7 +66,7 @@ export function PredictionForm({
         <div className={settings.acceptingPredictions ? "deadline-status open" : "deadline-status closed"}>
           <Clock3 size={15} />
           {settings.acceptingPredictions
-            ? `Đóng lúc ${formatBangkokTime(settings.submissionClosesAt)}`
+            ? `Đóng lúc ${formatEventDeadline(settings.submissionClosesAt)}`
             : "Đã đóng dự đoán"}
         </div>
       </div>

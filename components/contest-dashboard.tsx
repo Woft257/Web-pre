@@ -22,7 +22,7 @@ import { PredictionForm } from "@/components/prediction-form";
 import { RulesView } from "@/components/rules-view";
 import { TeamFlag } from "@/components/team-flag";
 import { TimelineView } from "@/components/timeline-view";
-import { apiRequest, formatBangkokTime } from "@/lib/client/api";
+import { apiRequest, formatEventDeadline } from "@/lib/client/api";
 import type {
   ContestData,
   CurrentUser,
@@ -125,17 +125,17 @@ export function ContestDashboard({
     <div className="contest-shell">
       <header className="site-header">
         <div className="header-inner">
-          <Link className="brand-link" href="/" aria-label="MEXC World Cup Prediction">
+          <Link className="brand-link" href="/" aria-label="MEXC Vua Phá Lưới Độc Quyền">
             <MexcLogo />
             <span className="brand-divider" />
-            <strong>World Cup Final</strong>
+            <strong>VUA PHÁ LƯỚI ĐỘC QUYỀN</strong>
           </Link>
 
           <nav className="desktop-nav" aria-label="Điều hướng chính">
             <NavButton active={activeTab === "prediction"} onClick={() => switchTab("prediction")} icon={<ClipboardCheck size={17} />} label="Dự đoán" />
             <NavButton active={activeTab === "timeline"} onClick={() => switchTab("timeline")} icon={<ListOrdered size={17} />} label="Timeline" />
             <NavButton active={activeTab === "leaderboard"} onClick={() => switchTab("leaderboard")} icon={<Trophy size={17} />} label="Bảng xếp hạng" />
-            <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={17} />} label="Thể lệ" />
+            <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={17} />} label="Thể lệ & lưu ý" />
           </nav>
 
           <div className="header-actions">
@@ -150,7 +150,7 @@ export function ContestDashboard({
             <NavButton active={activeTab === "prediction"} onClick={() => switchTab("prediction")} icon={<ClipboardCheck size={17} />} label="Dự đoán" />
             <NavButton active={activeTab === "timeline"} onClick={() => switchTab("timeline")} icon={<ListOrdered size={17} />} label="Timeline" />
             <NavButton active={activeTab === "leaderboard"} onClick={() => switchTab("leaderboard")} icon={<Trophy size={17} />} label="Bảng xếp hạng" />
-            <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={17} />} label="Thể lệ" />
+            <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={17} />} label="Thể lệ & lưu ý" />
             {user && <button type="button" onClick={() => void signOut()}><LogOut size={17} /> Đăng xuất</button>}
           </div>
         )}
@@ -161,8 +161,8 @@ export function ContestDashboard({
         <div className="contest-banner-content">
           <div>
             <p className="eyebrow">MEXC Football Event 2026</p>
-            <h1>Dự đoán chung kết World Cup 2026</h1>
-            <p className="banner-subtitle"><Clock3 size={15} /> Nhận dự đoán đến {formatBangkokTime(contest.settings.submissionClosesAt)}</p>
+            <h1>VUA PHÁ LƯỚI ĐỘC QUYỀN</h1>
+            <p className="banner-subtitle"><Clock3 size={15} /> Nhận dự đoán đến {formatEventDeadline(contest.settings.submissionClosesAt)}</p>
           </div>
           <div className="match-lockup" aria-label="Argentina versus Spain">
             <div><TeamFlag code="ARG" size={45} /><strong>Argentina</strong></div>
@@ -181,7 +181,7 @@ export function ContestDashboard({
         <NavButton active={activeTab === "prediction"} onClick={() => switchTab("prediction")} icon={<ClipboardCheck size={18} />} label="Dự đoán" />
         <NavButton active={activeTab === "timeline"} onClick={() => switchTab("timeline")} icon={<ListOrdered size={18} />} label="Timeline" />
         <NavButton active={activeTab === "leaderboard"} onClick={() => switchTab("leaderboard")} icon={<Trophy size={18} />} label="BXH" />
-        <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={18} />} label="Thể lệ" />
+        <NavButton active={activeTab === "rules"} onClick={() => switchTab("rules")} icon={<ScrollText size={18} />} label="Thể lệ & lưu ý" />
       </div>
 
       <main className="contest-main">

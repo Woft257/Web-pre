@@ -1,4 +1,4 @@
-# PROJECT PLAN - MEXC WORLD CUP 2026 PREDICTION
+# PROJECT PLAN - MEXC VUA PHA LUOI DOC QUYEN
 
 Cap nhat: 18/07/2026 (GMT+7)
 
@@ -8,6 +8,8 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Supabase Postgres luu durable state; khong dung JSON file.
 - [x] Bo toan bo runtime prediction market, Kalshi, price chart, buy/sell, portfolio va worker.
 - [x] Giu nhan dien MEXC, stadium asset va responsive desktop/mobile.
+- [x] Ten su kien `VUA PHA LUOI DOC QUYEN`; muc quy dinh hien thi `The le & luu y`.
+- [x] Deadline nhan du doan `23:59 19/07/2026 GMT+7` (`2026-07-19 16:59:00Z`).
 - [x] Mot ma moi co the dung cho nhieu UID.
 - [x] Moi UID gan voi ma da dung lan dau; dang nhap lai phai dung cap ma + UID.
 
@@ -62,11 +64,13 @@ Cap nhat: 18/07/2026 (GMT+7)
 - [x] Migration `20260718220000_prediction_contest_rebuild.sql` thay toan bo public schema market cu.
 - [x] Giu nguyen noi dung/version `20260718200000` vi Cloud da apply; khong repair/revert migration history remote.
 - [x] Tao forward migration `20260718233000_admin_delete_and_reset.sql` de dua RPC delete/reset len Cloud da ghi nhan version `20260718220000` tu truoc.
+- [x] Migration `20260718234500_event_brand_and_deadline.sql` cap nhat ten su kien va deadline `2026-07-19 16:59:00Z`.
 - [x] Seed contest final va 5 reusable invite-code hash.
 - [x] Generated Supabase TypeScript types theo schema moi.
 - [x] Local reset thanh cong tu toan bo migration history.
 - [x] Migration contest `20260718220000` da co tren Supabase Production.
 - [x] Apply forward migration `20260718233000` tren Supabase Production.
+- [x] Apply va verify migration `20260718234500` tren Supabase Production; title/deadline remote dung gia tri mong doi.
 - [x] Remote PostgREST publish ca hai RPC; probe delete bang UUID khong ton tai da vao ham va tra `USER_NOT_FOUND` dung mong doi.
 - [ ] Smoke test destructive delete participant va reset event tren giao dien Vercel bang du lieu test.
 

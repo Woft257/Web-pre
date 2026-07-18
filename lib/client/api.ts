@@ -47,3 +47,18 @@ export function formatBangkokTime(value: string) {
     timeZone: process.env.NEXT_PUBLIC_APP_TIME_ZONE ?? "Asia/Bangkok",
   }).format(new Date(value));
 }
+
+export function formatEventDeadline(value: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    hourCycle: "h23",
+    timeZone: "Asia/Bangkok",
+  }).formatToParts(new Date(value));
+  const valueOf = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${valueOf("hour")}:${valueOf("minute")} ${valueOf("day")}/${valueOf("month")}/${valueOf("year")} GMT+7`;
+}

@@ -1,4 +1,4 @@
-# MEXC World Cup 2026 Prediction - Runbook
+# MEXC VUA PHA LUOI DOC QUYEN - Runbook
 
 ## Truoc khi mo su kien
 
@@ -6,7 +6,7 @@
 - Dry-run va apply migration contest; xac nhan dung 5 invite-code hash active.
 - Cau hinh env tren Vercel va rotate cac secret da tung bi chia se.
 - Test hai UID cung dang ky duoc bang mot ma, nhung UID cu khong dang nhap duoc bang ma khac.
-- Xac nhan gio dong prediction la `20/07/2026 02:00 GMT+7`.
+- Xac nhan gio dong prediction la `19/07/2026 23:59 GMT+7`.
 - Test CSV participants va leaderboard.
 
 ## Trong thoi gian nhan prediction

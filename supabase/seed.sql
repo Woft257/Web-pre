@@ -2,10 +2,10 @@ insert into public.contest_settings(
   id, title, home_team, away_team, submission_closes_at, predictions_open
 ) values (
   true,
-  'FIFA World Cup 2026 Final Prediction',
+  'VUA PHÁ LƯỚI ĐỘC QUYỀN',
   'Argentina',
   'Spain',
-  '2026-07-19 19:00:00+00',
+  '2026-07-19 16:59:00+00',
   true
 )
 on conflict (id) do update set

@@ -3,10 +3,10 @@ import { AlertTriangle, Gift, LockKeyhole, ScrollText, ShieldCheck } from "lucid
 export function RulesView() {
   return (
     <section className="rules-section">
-      <div className="view-heading"><div><p className="eyebrow">Event Terms</p><h2>Thể lệ chương trình</h2></div></div>
+      <div className="view-heading"><div><p className="eyebrow">Event Terms</p><h2>Thể lệ &amp; lưu ý</h2></div></div>
 
       <div className="rules-band">
-        <div className="rules-band-title"><ScrollText size={21} /><h3>Thể lệ</h3></div>
+        <div className="rules-band-title"><ScrollText size={21} /><h3>Thể lệ &amp; lưu ý</h3></div>
         <p>Anh em tham gia dự đoán 3 nội dung sau:</p>
         <ol>
           <li>Dự đoán đội chiến thắng của trận đấu.</li>
