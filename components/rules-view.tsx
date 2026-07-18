@@ -21,7 +21,7 @@ export function RulesView() {
         <div className="prize-grid">
           <div><span>Top 1</span><strong>Louis Vuitton Imagination EDP</strong></div>
           <div><span>Top 2</span><strong>Montblanc - Ví đựng thẻ Sartorial</strong></div>
-          <div><span>Top 3</span><strong>Cúp vô địch WC bằng Lego</strong></div>
+          <div><span>Top 3</span><strong>Cúp Vô Địch Fifa World Cup - Lego Editions Sports</strong></div>
           <div><span>Top 4-10</span><strong>Diptyque - Sáp thơm treo Baies</strong></div>
           <div><span>10 Lucky Draw</span><strong>Bình nước Stanley phiên bản World Cup</strong></div>
         </div>
